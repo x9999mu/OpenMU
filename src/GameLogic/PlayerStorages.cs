@@ -121,13 +121,19 @@ internal sealed class PlayerStorages
 
     private async ValueTask RestoreBackupInventoryAsync(IInventoryStorage inventory, BackupItemStorage backupInventory)
     {
-        inventory.Clear();
-        backupInventory.RestoreItemStates();
-        foreach (var item in backupInventory.Items)
+        // Only the items which are still placed in the dialog storage have to go back to the inventory.
+        // Everything else is either still in the inventory - including everything the player gained while
+        // the dialog was open - or it was consumed, sold or given away in the meantime and must not be
+        // resurrected. Clearing the inventory and restoring the whole snapshot would roll back the progress
+        // of the current session (and bring back consumed items).
+        var itemsInDialog = this.TemporaryStorage?.Items.ToList() ?? new List<Item>();
+        foreach (var item in backupInventory.Items.Where(itemsInDialog.Contains).ToList())
         {
             try
             {
-                if (!await inventory.AddItemAsync(item.ItemSlot, item).ConfigureAwait(false)
+                await this.TemporaryStorage!.RemoveItemAsync(item).ConfigureAwait(false);
+                var originalSlot = backupInventory.GetInitialItemSlot(item) ?? item.ItemSlot;
+                if (!await inventory.AddItemAsync(originalSlot, item).ConfigureAwait(false)
                     && !await inventory.AddItemAsync(item).ConfigureAwait(false))
                 {
                     this._player.Logger.LogError("Failed to restore item {item} from backup inventory of player {player}.", item, this._player.Name);
@@ -139,7 +145,13 @@ internal sealed class PlayerStorages
             }
         }
 
-        inventory.ItemStorage.Money = backupInventory.Money;
+        // Money which is currently offered in an open trade window was taken off the balance, so it has to be given back.
+        if (this._player.TradingMoney > 0)
+        {
+            this._player.TryAddMoney(this._player.TradingMoney);
+            this._player.TradingMoney = 0;
+        }
+
         this.BackupInventory = null;
         this.TemporaryStorage = null;
     }
