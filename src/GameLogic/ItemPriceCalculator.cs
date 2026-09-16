@@ -213,7 +213,9 @@ public class ItemPriceCalculator
         { (int)SpecialItems.CherryBlossomWine, item => 300 * item.Durability() },
         { (int)SpecialItems.CherryBlossomRiceCake, item => 300 * item.Durability() },
         { (int)SpecialItems.CherryBlossomFlowerPetal, item => 300 * item.Durability() },
-        { (int)SpecialItems.GoldenCherryBlossomBranch, item => 300 * item.Durability() },
+        // The inventory extension item, sold by Potion Girl Amy. It must not be cheaper than this,
+        // because it grants permanent inventory space and gets consumed on use.
+        { (int)SpecialItems.GoldenCherryBlossomBranch, _ => 500_000_000 },
     };
 
     private enum SpecialItems

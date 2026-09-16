@@ -766,6 +766,31 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that Potion Girl Amy sells the inventory extension item for the configured price.
+    /// </summary>
+    [Test]
+    public async Task TestInventoryExtensionItemIsSoldByPotionGirlAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var update = new AddInventoryExtensionItemToPotionGirlStoreUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var potionGirl = configuration.Monsters.Single(monster => monster.Number == 253);
+        var storeItem = potionGirl.MerchantStore!.Items.Single(item => item.Definition!.Group == 14 && item.Definition.Number == 90);
+        Assert.Multiple(() =>
+        {
+            Assert.That(storeItem.Durability, Is.EqualTo(1), "one purchase must unlock exactly one extension");
+            Assert.That(new ItemPriceCalculator().CalculateFinalBuyingPrice(storeItem), Is.EqualTo(500_000_000));
+        });
+    }
+
+    /// <summary>
     /// Tests that the GM Gift jewelry update adds one low-rate full-excellent opening idempotently.
     /// </summary>
     [Test]

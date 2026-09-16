@@ -315,7 +315,20 @@ internal static class InstantServerConfiguration
         {
             AddGeneralGoods(context, gameConfiguration, packer);
             AddClassChangeAndWingItems(context, gameConfiguration, packer);
+            AddInventoryExtensionItem(context, gameConfiguration, packer);
         });
+    }
+
+    /// <summary>
+    /// Adds the item which unlocks an inventory extension to the store.
+    /// Its price is hard-coded in the item price calculator.
+    /// </summary>
+    /// <param name="context">The persistence context.</param>
+    /// <param name="gameConfiguration">The game configuration.</param>
+    /// <param name="packer">The store packer.</param>
+    private static void AddInventoryExtensionItem(IContext context, GameConfiguration gameConfiguration, MerchantStorePacker packer)
+    {
+        packer.Add(CreateStoreItem(context, GetItemDefinition(gameConfiguration, 14, 90)));
     }
 
     /// <summary>
