@@ -1,12 +1,12 @@
 #!/bin/sh
 set -eu
 
-branch=${1:-test-server}
+branch=${1:-develop}
 expected_data_version=138
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 lan_config_dir=/home/vietlubu/.config/openmu
 compose_dir="$repo_root/deploy/all-in-one"
-image_repository=${OPENMU_IMAGE_REPOSITORY:-ghcr.io/vietlubu/openmu}
+image_repository=${OPENMU_IMAGE_REPOSITORY:-ghcr.io/x9999mu/openmu}
 
 cd "$repo_root"
 previous_head=$(git rev-parse HEAD)

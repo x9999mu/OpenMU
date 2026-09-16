@@ -34,8 +34,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/vietlubu/openmu:test-server
-            ghcr.io/vietlubu/openmu:sha-${{ github.sha }}
+            ghcr.io/x9999mu/openmu:develop
+            ghcr.io/x9999mu/openmu:sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
