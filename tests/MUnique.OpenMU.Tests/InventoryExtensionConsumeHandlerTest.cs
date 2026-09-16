@@ -8,9 +8,11 @@ using MUnique.OpenMU.DataModel;
 using MUnique.OpenMU.DataModel.Configuration.Items;
 using MUnique.OpenMU.DataModel.Entities;
 using MUnique.OpenMU.GameLogic.PlayerActions.ItemConsumeActions;
+using MUnique.OpenMU.GameLogic.PlayerActions.Items;
+using MUnique.OpenMU.GameLogic.PlugIns;
 
 /// <summary>
-/// Tests the consumption of the item which unlocks inventory extensions.
+/// Tests the item which unlocks inventory extensions.
 /// </summary>
 [TestFixture]
 public class InventoryExtensionConsumeHandlerTest
@@ -61,6 +63,26 @@ public class InventoryExtensionConsumeHandlerTest
         Assert.That(item.Durability, Is.EqualTo(1), "the item should not be used up");
         Assert.That(character.InventoryExtensions, Is.EqualTo(InventoryConstants.MaximumNumberOfExtensions));
     }
+
+    /// <summary>
+    /// Verifies that the actual drop action consumes the item, unlocks the extension and creates no ground drop.
+    /// </summary>
+    [Test]
+    public async ValueTask DroppingTheItemUnlocksExtensionAsync()
+    {
+        var player = await PlayerTestHelper.CreatePlayerAsync().ConfigureAwait(false);
+        var character = player.SelectedCharacter!;
+        var item = CreateItem();
+        await player.Inventory!.AddItemAsync(ItemSlot, item).ConfigureAwait(false);
+        player.GameContext.PlugInManager.RegisterPlugInAtPlugInPoint<IItemDropPlugIn>(new InventoryExtensionItemDroppedPlugIn());
+
+        await new DropItemAction().DropItemAsync(player, ItemSlot, default).ConfigureAwait(false);
+
+        Assert.That(character.InventoryExtensions, Is.EqualTo(1));
+        Assert.That(player.Inventory.GetItem(ItemSlot), Is.Null, "the item should be consumed");
+        Assert.That(player.CurrentMap!.GetDropsInRange(default, 1), Is.Empty, "the item should not be dropped on the ground");
+    }
+
 
     private static Item CreateItem()
     {

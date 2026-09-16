@@ -23,9 +23,25 @@ public class InventoryExtensionConsumeHandlerPlugIn : BaseConsumeHandlerPlugIn
     /// <inheritdoc />
     public override async ValueTask<bool> ConsumeItemAsync(Player player, Item item, Item? targetItem, FruitUsage fruitUsage)
     {
+        if (!this.CheckPreconditions(player, item)
+            || !await TryUnlockExtensionAsync(player).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        await this.ConsumeSourceItemAsync(player, item).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>
+    /// Unlocks the next inventory extension of the player and updates the client, if there is one left.
+    /// </summary>
+    /// <param name="player">The player.</param>
+    /// <returns><c>true</c>, if an extension was unlocked; Otherwise, <c>false</c>.</returns>
+    internal static async ValueTask<bool> TryUnlockExtensionAsync(Player player)
+    {
         if (player.SelectedCharacter is not { } character
-            || character.InventoryExtensions >= InventoryConstants.MaximumNumberOfExtensions
-            || !this.CheckPreconditions(player, item))
+            || character.InventoryExtensions >= InventoryConstants.MaximumNumberOfExtensions)
         {
             return false;
         }
@@ -39,7 +55,6 @@ public class InventoryExtensionConsumeHandlerPlugIn : BaseConsumeHandlerPlugIn
             inventoryStorage.AddExtension();
         }
 
-        await this.ConsumeSourceItemAsync(player, item).ConfigureAwait(false);
         await player.InvokeViewPlugInAsync<IUpdateCharacterStatsPlugIn>(p => p.UpdateCharacterStatsAsync()).ConfigureAwait(false);
         await player.InvokeViewPlugInAsync<IUpdateInventoryListPlugIn>(p => p.UpdateInventoryListAsync()).ConfigureAwait(false);
         return true;

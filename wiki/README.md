@@ -129,6 +129,10 @@ Riêng **Potion Girl Amy (253)** còn bán:
 - Chaos Dragon Axe, Chaos Nature Bow và Chaos Lightning Staff **+4 +4 option** để đưa thẳng vào công thức tạo cánh cấp 1.
 - Jewel of Bless, Soul, Chaos, Life và Creation dạng viên lẻ; đồng thời có Packed Jewel tương ứng loại 10, 20 và 30 viên.
 - Loch's Feather thường, Loch's Feather +1 (Monarch's Crest), Flame of Condor và Feather of Condor cho các công thức cánh/cape cao hơn.
+- **Golden Cherry Blossom Branch** — dùng để **mở thêm 4 hàng túi đồ**, mỗi lần dùng thêm 1 lần mở rộng, tối đa 4 lần. Giá **500.000.000 Zen**.
+
+> **Cách mở rộng túi đồ:** mua Golden Cherry Blossom Branch ở Potion Girl Amy rồi **thả item xuống đất**. Server sẽ dùng item để mở rộng túi thay vì để nó rơi xuống đất. Một số client không gửi lệnh "dùng" cho item này, nên thao tác thả xuống đất là cách dùng chính thức; nếu client của bạn cho phép nhấn đúp thì cách đó cũng hoạt động.
+> Nếu túi chưa thấy thêm hàng ngay, thoát ra vào lại nhân vật. Khi đã đủ 4 lần mở rộng, thả item sẽ rơi xuống đất bình thường.
 
 Riêng **Lumen the Barmaid (255)** bán vé vào event hoàn chỉnh: Invisibility Cloak +1 đến +8 (Blood Castle), Devil's Invitation +1 đến +7 (Devil Square), Scroll of Blood +1 đến +6 (Illusion Temple), Armor of Guardsman (Chaos Castle), Lost Map +7 (Kalima 7), cùng Ale.
 
