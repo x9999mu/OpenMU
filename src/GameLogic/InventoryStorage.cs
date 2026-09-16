@@ -53,6 +53,21 @@ public class InventoryStorage : Storage, IInventoryStorage
         this.InitializePowerUps();
     }
 
+    /// <summary>
+    /// Appends the next inventory extension, so that its slots can be used right away.
+    /// The storages are created when the character enters the world, therefore a character which
+    /// unlocked an extension during the session needs this to be able to store items in the new slots.
+    /// </summary>
+    /// <returns>The zero-based index of the added extension.</returns>
+    public int AddExtension()
+    {
+        var index = this.Extensions.Count();
+        var sizePerExtension = RowsOfOneExtension * RowSize;
+        var offset = FirstExtensionItemSlotIndex + (index * sizePerExtension);
+        this.Extensions = this.Extensions.Append(new Storage(sizePerExtension, 0, offset, this.ItemStorage)).ToList();
+        return index;
+    }
+
     /// <inheritdoc/>
     public event AsyncEventHandler<ItemEventArgs>? EquippedItemsChanged;
 

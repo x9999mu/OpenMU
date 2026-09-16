@@ -699,4 +699,9 @@ public enum UpdateVersion
     /// The version of the <see cref="FixKundunBoxUpgradingUpdatePlugIn"/>.
     /// </summary>
     FixKundunBoxUpgrading = 138,
+
+    /// <summary>
+    /// The version of the <see cref="ConfigureInventoryExtensionItemUpdatePlugIn"/>.
+    /// </summary>
+    ConfigureInventoryExtensionItem = 139,
 }

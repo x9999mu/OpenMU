@@ -165,6 +165,15 @@ public class ItemConstants
     public static ItemIdentifier WizardsRing => new(20, 13);
 
     /// <summary>
+    /// Gets the identifier for the item which adds one inventory extension when it gets consumed.
+    /// </summary>
+    /// <remarks>
+    /// It reuses the group and number of the 'Golden Cherry Blossom Branch', because the client renders and
+    /// names items by their group and number. The item itself is unused in this game configuration.
+    /// </remarks>
+    public static ItemIdentifier InventoryExtension => new(90, 14);
+
+    /// <summary>
     /// Gets all scrolls.
     /// </summary>
     public static ItemIdentifier AllScrolls => new(null, 15);

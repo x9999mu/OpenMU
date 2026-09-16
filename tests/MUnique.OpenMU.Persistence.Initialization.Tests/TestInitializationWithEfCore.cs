@@ -739,6 +739,33 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that the inventory extension item update leaves exactly one single-use item behind.
+    /// </summary>
+    [Test]
+    public async Task TestConfigureInventoryExtensionItemUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var update = new ConfigureInventoryExtensionItemUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var itemIdentifier = ItemConstants.InventoryExtension;
+        var extensionItems = configuration.Items
+            .Where(item => item.Group == itemIdentifier.Group && item.Number == itemIdentifier.Number)
+            .ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(extensionItems, Has.Count.EqualTo(1), "the item which unlocks an inventory extension must exist exactly once");
+            Assert.That(extensionItems[0].Durability, Is.EqualTo(1), "it must last exactly one use, because it gets consumed");
+        });
+    }
+
+    /// <summary>
     /// Tests that the GM Gift jewelry update adds one low-rate full-excellent opening idempotently.
     /// </summary>
     [Test]

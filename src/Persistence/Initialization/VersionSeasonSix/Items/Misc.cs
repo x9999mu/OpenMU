@@ -130,11 +130,12 @@ public class Misc : InitializerBase
 
     private void CreateGoldenCherryBlossomBranch()
     {
+        // This unused item is consumed to unlock an inventory extension, so it lasts exactly one use.
         var itemDefinition = this.Context.CreateNew<ItemDefinition>();
         itemDefinition.Name = "Golden Cherry Blossom Branch";
         itemDefinition.Number = 90;
         itemDefinition.Group = 14;
-        itemDefinition.Durability = 255;
+        itemDefinition.Durability = 1;
         itemDefinition.Width = 1;
         itemDefinition.Height = 2;
         itemDefinition.SetGuid(itemDefinition.Group, itemDefinition.Number);
