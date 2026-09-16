@@ -719,4 +719,9 @@ public enum UpdateVersion
     /// The version of the <see cref="RepairLumenEventTicketStoreUpdatePlugIn"/>.
     /// </summary>
     RepairLumenEventTicketStore = 142,
+
+    /// <summary>
+    /// The version of the <see cref="EnableBotFeatureUpdatePlugIn"/>.
+    /// </summary>
+    EnableBotFeature = 143,
 }

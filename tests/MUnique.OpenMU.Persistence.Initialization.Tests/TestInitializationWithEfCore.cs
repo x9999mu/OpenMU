@@ -12,6 +12,7 @@ using MUnique.OpenMU.DataModel.Configuration.Items;
 using MUnique.OpenMU.DataModel.Entities;
 using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.GameLogic.Attributes;
+using MUnique.OpenMU.GameLogic.Bots;
 using MUnique.OpenMU.GameLogic.PlayerActions.Craftings;
 using MUnique.OpenMU.GameLogic.PlugIns.InvasionEvents;
 using MUnique.OpenMU.GameLogic.PlugIns.PeriodicTasks;
@@ -787,6 +788,40 @@ internal class TestInitializationWithEfCore
         {
             Assert.That(storeItem.Durability, Is.EqualTo(1), "one purchase must unlock exactly one extension");
             Assert.That(new ItemPriceCalculator().CalculateFinalBuyingPrice(storeItem), Is.EqualTo(500_000_000));
+        });
+    }
+
+    /// <summary>
+    /// Tests that the bot feature update creates, enables and preserves one configuration idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestEnableBotFeatureUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var gameConfiguration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var typeId = typeof(BotFeaturePlugIn).GUID;
+        gameConfiguration.PlugInConfigurations.Remove(gameConfiguration.PlugInConfigurations.Single(configuration => configuration.TypeId == typeId));
+
+        var update = new EnableBotFeatureUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, gameConfiguration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, gameConfiguration).ConfigureAwait(false);
+
+        var plugInConfiguration = gameConfiguration.PlugInConfigurations.Single(configuration => configuration.TypeId == typeId);
+        var configuration = plugInConfiguration.GetConfiguration<BotConfiguration>(null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(plugInConfiguration.IsActive, Is.True);
+            Assert.That(configuration, Is.Not.Null);
+            Assert.That(configuration!.Enabled, Is.True);
+            Assert.That(configuration.NumberOfAccounts, Is.EqualTo(2));
+            Assert.That(configuration.MaxCharactersPerAccount, Is.EqualTo(1));
+            Assert.That(configuration.BotCapacityPercent, Is.EqualTo(20));
+            Assert.That(configuration.PresenceRotation, Is.False);
+            Assert.That(configuration.StartAsFreshCharacters, Is.True);
         });
     }
 
