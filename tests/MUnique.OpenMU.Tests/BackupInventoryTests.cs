@@ -16,6 +16,8 @@ using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.GameLogic.Attributes;
 using MUnique.OpenMU.GameLogic.NPC;
 using MUnique.OpenMU.GameLogic.PlayerActions;
+using MUnique.OpenMU.GameLogic.PlayerActions.Character;
+using MUnique.OpenMU.GameLogic.Views.Login;
 using MUnique.OpenMU.Persistence.InMemory;
 using MUnique.OpenMU.PlugIns;
 
@@ -110,6 +112,78 @@ public class BackupInventoryTests
         await RelogAsync(player, character).ConfigureAwait(false);
 
         Assert.That(player.Inventory!.Items, Is.Empty);
+    }
+
+    /// <summary>
+    /// Verifies that repeatedly switching between the characters of an account doesn't roll back
+    /// the inventory of the character which is left. Each switch follows a closed crafting dialog,
+    /// like a player who visits a crafting NPC and keeps playing afterwards.
+    /// </summary>
+    [Test]
+    public async ValueTask RepeatedCharacterSwitchingKeepsInventoryOfBothCharactersAsync()
+    {
+        var player = await CreateTestPlayerAsync().ConfigureAwait(false);
+        var firstCharacter = player.SelectedCharacter!;
+        var secondCharacter = CreateSecondCharacter(player);
+        Mock.Get(player.Account!).Setup(a => a.Characters).Returns(new List<Character> { firstCharacter, secondCharacter });
+
+        // Progress of the first character, made after a crafting dialog was opened and closed.
+        await OpenCraftingDialogAsync(player).ConfigureAwait(false);
+        await new CloseNpcDialogAction().CloseNpcDialogAsync(player).ConfigureAwait(false);
+        var firstItem = CreateItem(CreateDefinition());
+        await player.Inventory!.AddItemAsync(20, firstItem).ConfigureAwait(false);
+
+        // Progress of the second character, made the same way.
+        await SwitchCharacterAsync(player, secondCharacter.Name).ConfigureAwait(false);
+        await OpenCraftingDialogAsync(player).ConfigureAwait(false);
+        await new CloseNpcDialogAction().CloseNpcDialogAsync(player).ConfigureAwait(false);
+        var secondItem = CreateItem(CreateDefinition());
+        await player.Inventory!.AddItemAsync(21, secondItem).ConfigureAwait(false);
+
+        // Switching back and forth, again with a closed crafting dialog in between.
+        for (var i = 0; i < 3; i++)
+        {
+            await OpenCraftingDialogAsync(player).ConfigureAwait(false);
+            await new CloseNpcDialogAction().CloseNpcDialogAsync(player).ConfigureAwait(false);
+            await SwitchCharacterAsync(player, firstCharacter.Name).ConfigureAwait(false);
+
+            await OpenCraftingDialogAsync(player).ConfigureAwait(false);
+            await new CloseNpcDialogAction().CloseNpcDialogAsync(player).ConfigureAwait(false);
+            await SwitchCharacterAsync(player, secondCharacter.Name).ConfigureAwait(false);
+        }
+
+        Assert.That(player.SelectedCharacter, Is.SameAs(secondCharacter));
+        Assert.That(firstCharacter.Inventory!.Items, Has.Exactly(1).SameAs(firstItem));
+        Assert.That(player.Inventory!.GetItem(21), Is.SameAs(secondItem));
+    }
+
+    private static Character CreateSecondCharacter(Player player)
+    {
+        var firstCharacter = player.SelectedCharacter!;
+        var characterMock = new Mock<Character>();
+        characterMock.SetupAllProperties();
+        characterMock.Setup(c => c.LearnedSkills).Returns(new List<SkillEntry>());
+        characterMock.Setup(c => c.Attributes).Returns(new List<StatAttribute>());
+        characterMock.Setup(c => c.DropItemGroups).Returns(new List<DropItemGroup>());
+        var inventoryMock = new Mock<ItemStorage>();
+        inventoryMock.SetupAllProperties();
+        inventoryMock.Setup(i => i.Items).Returns(new List<Item>());
+        var character = characterMock.Object;
+        character.Name = "SecondCharacter";
+        character.CharacterSlot = 1;
+        character.CurrentMap = firstCharacter.CurrentMap;
+        character.CharacterClass = firstCharacter.CharacterClass;
+        character.Inventory = inventoryMock.Object;
+        return character;
+    }
+
+    private static async ValueTask SwitchCharacterAsync(Player player, string characterName)
+    {
+        await new LogoutAction().LogoutAsync(player, LogoutType.BackToCharacterSelection).ConfigureAwait(false);
+        await new RequestCharacterListAction().RequestCharacterListAsync(player).ConfigureAwait(false);
+        await new SelectCharacterAction().SelectCharacterAsync(player, characterName).ConfigureAwait(false);
+        await player.ClientReadyAfterMapChangeAsync().ConfigureAwait(false);
+        Assert.That(player.SelectedCharacter?.Name, Is.EqualTo(characterName));
     }
 
     private static async ValueTask<Player> CreateTestPlayerAsync()

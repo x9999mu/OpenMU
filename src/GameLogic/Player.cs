@@ -1175,7 +1175,11 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
 
         await this._mapTransitions.RemoveFromCurrentMapAsync().ConfigureAwait(false);
 
-        await this._storages.RestoreTemporaryStorageItemsAsync().ConfigureAwait(false);
+        // The restore mutates the inventory and the dialog storage. On a disconnect it runs on the
+        // connection teardown flow, so it has to take the player's persistence lock - otherwise it can
+        // race an in-flight packet handler (e.g. an item move) or a bot tick and leave the change
+        // tracker in a broken state, which makes every following save fail.
+        await this.RunPersistenceExclusiveAsync(() => this._storages.RestoreTemporaryStorageItemsAsync()).ConfigureAwait(false);
 
         this.OpenedNpc = null;
 
