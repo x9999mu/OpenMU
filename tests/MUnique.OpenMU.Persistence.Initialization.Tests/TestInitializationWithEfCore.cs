@@ -791,6 +791,32 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that the Potion Girl store repair produces a loadable, non-duplicated store idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestRepairPotionGirlStoreUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var potionGirl = configuration.Monsters.Single(monster => monster.Number == 253);
+        var update = new RepairPotionGirlStoreUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var storeItems = potionGirl.MerchantStore!.Items;
+        Assert.Multiple(() =>
+        {
+            Assert.DoesNotThrow(() => _ = new Storage(InventoryConstants.WarehouseSize, potionGirl.MerchantStore));
+            Assert.That(storeItems.Count(item => item.Definition is { Group: 12, Number: 137 } && item.Level == 0), Is.EqualTo(1));
+            Assert.That(storeItems.Count(item => item.Definition is { Group: 14, Number: 90 }), Is.EqualTo(1));
+        });
+    }
+
+    /// <summary>
     /// Tests that the GM Gift jewelry update adds one low-rate full-excellent opening idempotently.
     /// </summary>
     [Test]
@@ -1139,6 +1165,7 @@ internal class TestInitializationWithEfCore
             Assert.That(shopItems, Has.Count.EqualTo(24));
             Assert.That(shopItems.Select(item => (item.Definition!.Group, item.Definition.Number, item.Level)), Is.EquivalentTo(expectedItems));
             Assert.That(shopItems.Single(item => item.Definition is { Group: 14, Number: 9 }).Durability, Is.EqualTo(1));
+            Assert.DoesNotThrow(() => _ = new Storage(InventoryConstants.WarehouseSize, configuration.Monsters.Single(monster => monster.Number == 255).MerchantStore!));
         });
     }
 

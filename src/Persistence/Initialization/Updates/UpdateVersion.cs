@@ -709,4 +709,14 @@ public enum UpdateVersion
     /// The version of the <see cref="AddInventoryExtensionItemToPotionGirlStoreUpdatePlugIn"/>.
     /// </summary>
     AddInventoryExtensionItemToPotionGirlStore = 140,
+
+    /// <summary>
+    /// The version of the <see cref="RepairPotionGirlStoreUpdatePlugIn"/>.
+    /// </summary>
+    RepairPotionGirlStore = 141,
+
+    /// <summary>
+    /// The version of the <see cref="RepairLumenEventTicketStoreUpdatePlugIn"/>.
+    /// </summary>
+    RepairLumenEventTicketStore = 142,
 }

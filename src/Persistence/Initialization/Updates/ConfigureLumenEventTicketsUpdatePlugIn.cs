@@ -5,8 +5,10 @@
 namespace MUnique.OpenMU.Persistence.Initialization.Updates;
 
 using System.Runtime.InteropServices;
+using MUnique.OpenMU.DataModel;
 using MUnique.OpenMU.DataModel.Configuration;
 using MUnique.OpenMU.DataModel.Entities;
+using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.Persistence.Initialization.Items;
 using MUnique.OpenMU.PlugIns;
 
@@ -47,7 +49,16 @@ public sealed class ConfigureLumenEventTicketsUpdatePlugIn : UpdatePlugInBase
     public override bool IsMandatory => true;
 
     /// <inheritdoc />
-    protected override async ValueTask ApplyAsync(IContext context, GameConfiguration gameConfiguration)
+    protected override ValueTask ApplyAsync(IContext context, GameConfiguration gameConfiguration)
+        => ConfigureStoreAsync(context, gameConfiguration);
+
+    /// <summary>
+    /// Replaces the store contents and packs every ticket according to its actual dimensions.
+    /// </summary>
+    /// <param name="context">The persistence context.</param>
+    /// <param name="gameConfiguration">The game configuration.</param>
+    /// <returns>The asynchronous operation.</returns>
+    internal static async ValueTask ConfigureStoreAsync(IContext context, GameConfiguration gameConfiguration)
     {
         var store = gameConfiguration.Monsters.Single(monster => monster.Number == 255).MerchantStore!;
         var previousItems = store.Items.ToList();
@@ -73,6 +84,17 @@ public sealed class ConfigureLumenEventTicketsUpdatePlugIn : UpdatePlugInBase
         store.Items.Add(itemHelper.CreateItem(slot++, 28, 14, 1, 7));
         store.Items.Add(itemHelper.CreatePotion(slot++, 9, 1, 0));
         store.Items.Add(itemHelper.CreateItem(slot, 29, 13, 1, 0));
+
+        var currentItems = store.Items.ToList();
+        store.Items.Clear();
+        var merchantStorage = new Storage(InventoryConstants.WarehouseSize, store);
+        foreach (var item in currentItems)
+        {
+            if (!await merchantStorage.AddItemAsync(item).ConfigureAwait(false))
+            {
+                throw new InvalidOperationException($"Lumen's store cannot fit {item.Definition}.");
+            }
+        }
 
         foreach (var item in previousItems)
         {
