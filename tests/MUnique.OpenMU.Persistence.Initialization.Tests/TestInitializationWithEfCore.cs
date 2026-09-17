@@ -1436,6 +1436,33 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that Rhea sells one Ancient item with the +4 option required for Seed Extraction.
+    /// </summary>
+    [Test]
+    public async Task TestAddAncientSeedExtractionMaterialToRheaStoreUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var update = new AddAncientSeedExtractionMaterialToRheaStoreUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var items = configuration.Monsters.Single(monster => monster.Number == 416).MerchantStore!.Items
+            .Where(item => item.Definition is { Group: 7, Number: 40 }
+                           && item.ItemSetGroups.Any(group => group.ItemSetGroup?.Name == "Semeden" && group.AncientSetDiscriminator == 2))
+            .ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(items, Has.Count.EqualTo(1));
+            Assert.That(items[0].ItemOptions.Single(option => option.ItemOption?.OptionType == ItemOptionTypes.Option).Level, Is.EqualTo(1));
+        });
+    }
+
+    /// <summary>
     /// Tests that the Lumen event-ticket update replaces her shop inventory idempotently.
     /// </summary>
     [Test]

@@ -734,4 +734,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ReduceKalimaSevenBossDefenseRateUpdatePlugIn"/>.
     /// </summary>
     ReduceKalimaSevenBossDefenseRate = 145,
+
+    /// <summary>
+    /// The version of the <see cref="AddAncientSeedExtractionMaterialToRheaStoreUpdatePlugIn"/>.
+    /// </summary>
+    AddAncientSeedExtractionMaterialToRheaStore = 146,
 }
