@@ -173,6 +173,7 @@ internal class TestInitializationWithEfCore
             Assert.That(monsters.Where(monster => monster.Number != 275 && monster.Number is < 331 or > 337).All(monster => monster.NumberOfMaximumItemDrops == 2 && monster.RespawnDelay <= TimeSpan.FromSeconds(5)), Is.True);
             Assert.That(monsters.Where(monster => monster.Number is >= 331 and <= 337).All(monster => monster.NumberOfMaximumItemDrops == 1), Is.True);
             Assert.That(monsters.Single(monster => monster.Number == 275).NumberOfMaximumItemDrops, Is.EqualTo(12));
+            Assert.That(monsters.Single(monster => monster.Number == 275)[Stats.DefenseRatePvm], Is.EqualTo(10_000));
             Assert.That(configuration.MiniGameDefinitions.All(miniGame => miniGame.ArePlayerKillersAllowedToEnter), Is.True);
         });
 
@@ -420,7 +421,9 @@ internal class TestInitializationWithEfCore
             });
         }
 
-        foreach (var boss in monsters.Where(monster => bossNumbers.Contains(monster.Number)))
+        // The Illusion of Kundun 7 (275) is intentionally excluded from the boss defense rate floor,
+        // so that it stays hittable with a regular attack rate; see ConfigureKalimaSevenBossDefenseRate.
+        foreach (var boss in monsters.Where(monster => bossNumbers.Contains(monster.Number) && monster.Number != 275))
         {
             var tier = Math.Max(0, boss[Stats.Level] - 20);
             Assert.Multiple(() =>
@@ -816,6 +819,35 @@ internal class TestInitializationWithEfCore
 
         Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount), "the second application must not add groups");
         AssertIcarusAndKalimaSevenJewelDrops(configuration);
+    }
+
+    [Test]
+    public async Task TestReduceKalimaSevenBossDefenseRateUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+
+        // The initial data already contains the final state, so the retired Kalima 7 update is applied
+        // to get the state of a database which was still running the high defense rate.
+        await new ConfigureKalimaSevenUpdatePlugIn().ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var boss = configuration.Monsters.Single(monster => monster.Number == 275);
+        Assert.That(boss[Stats.DefenseRatePvm], Is.EqualTo(48_000), "precondition");
+
+        var update = new ReduceKalimaSevenBossDefenseRateUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(boss[Stats.DefenseRatePvm], Is.EqualTo(10_000), "defense rate");
+            Assert.That(boss[Stats.AttackRatePvm], Is.EqualTo(60_000), "the rest of the boss must stay untouched");
+            Assert.That(boss[Stats.DefenseBase], Is.EqualTo(60_000), "the rest of the boss must stay untouched");
+            Assert.That(boss[Stats.MaximumHealth], Is.EqualTo(120_000_000), "the rest of the boss must stay untouched");
+        });
     }
 
     /// <summary>

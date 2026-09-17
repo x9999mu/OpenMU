@@ -346,6 +346,23 @@ internal static class InstantServerConfiguration
         ConfigureIcarusDifficulty(gameConfiguration);
         ConfigureBossDifficulty(gameConfiguration);
         ConfigureIcarusAndKalimaSevenJewelDrops(context, gameConfiguration);
+        ConfigureKalimaSevenBossDefenseRate(gameConfiguration);
+    }
+
+    /// <summary>
+    /// Lowers the defense rate of the Illusion of Kundun 7, so that players with a regular attack rate
+    /// can hit it. With a defense rate of 10000, an attack rate of 20000 to 30000 results in a hit chance
+    /// of 50 to 67 percent.
+    /// </summary>
+    /// <param name="gameConfiguration">The game configuration.</param>
+    /// <remarks>
+    /// This has to be applied after <see cref="ConfigureBossDifficulty"/>, which raises the defense rate
+    /// of every boss to at least <c>Math.Clamp(tier * 200, 10000, 25000)</c>.
+    /// </remarks>
+    internal static void ConfigureKalimaSevenBossDefenseRate(GameConfiguration gameConfiguration)
+    {
+        var boss = gameConfiguration.Monsters.Single(monster => monster.Number == 275);
+        SetMonsterAttribute(boss, Stats.DefenseRatePvm, 10_000);
     }
 
     /// <summary>
