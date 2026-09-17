@@ -724,4 +724,9 @@ public enum UpdateVersion
     /// The version of the <see cref="EnableBotFeatureUpdatePlugIn"/>.
     /// </summary>
     EnableBotFeature = 143,
+
+    /// <summary>
+    /// The version of the <see cref="RestructureIcarusAndKalimaSevenJewelDropsUpdatePlugIn"/>.
+    /// </summary>
+    RestructureIcarusAndKalimaSevenJewelDrops = 144,
 }

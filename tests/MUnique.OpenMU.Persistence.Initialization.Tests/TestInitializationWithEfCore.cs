@@ -32,6 +32,28 @@ internal class TestInitializationWithEfCore
     private const byte IcarusMapNumber = 10;
     private static readonly Guid FeatherDropGroupId = new(0x200, IcarusMapNumber, 1, 0, 0, 0, 0, 0, 0, 0, 0);
     private static readonly Guid CrestDropGroupId = new(0x200, IcarusMapNumber, 2, 0, 0, 0, 0, 0, 0, 0, 0);
+    private static readonly (short Monster, double Gemstone, double Harmony, double Guardian)[] KalimaSevenJewelDropRates =
+    [
+        (331, 0.1000, 0.0500, 0.0100),
+        (332, 0.1167, 0.0583, 0.0117),
+        (333, 0.1333, 0.0667, 0.0133),
+        (334, 0.1500, 0.0750, 0.0150),
+        (335, 0.1667, 0.0833, 0.0167),
+        (336, 0.1833, 0.0917, 0.0183),
+        (337, 0.2000, 0.1000, 0.0200),
+    ];
+    private static readonly (short Monster, double Gemstone, double Harmony)[] IcarusJewelDropRates =
+    [
+        (69, 0.0200, 0.01000),
+        (71, 0.0225, 0.01125),
+        (70, 0.0250, 0.01250),
+        (73, 0.0275, 0.01375),
+        (74, 0.0300, 0.01500),
+        (72, 0.0325, 0.01625),
+        (75, 0.0350, 0.01750),
+        (76, 0.0375, 0.01875),
+        (77, 0.0400, 0.02000),
+    ];
 
     /// <summary>
     /// Tests the data initialization using the entity framework core.
@@ -148,11 +170,14 @@ internal class TestInitializationWithEfCore
             Assert.That(nonIcarusSpawns.All(spawn => spawn.Quantity >= 10), Is.True);
             Assert.That(icarusSpawns, Has.Count.EqualTo(64));
             Assert.That(icarusSpawns.All(spawn => spawn.Quantity == 3), Is.True);
-            Assert.That(monsters.All(monster => monster.NumberOfMaximumItemDrops == 2 && monster.RespawnDelay <= TimeSpan.FromSeconds(5)), Is.True);
+            Assert.That(monsters.Where(monster => monster.Number != 275 && monster.Number is < 331 or > 337).All(monster => monster.NumberOfMaximumItemDrops == 2 && monster.RespawnDelay <= TimeSpan.FromSeconds(5)), Is.True);
+            Assert.That(monsters.Where(monster => monster.Number is >= 331 and <= 337).All(monster => monster.NumberOfMaximumItemDrops == 1), Is.True);
+            Assert.That(monsters.Single(monster => monster.Number == 275).NumberOfMaximumItemDrops, Is.EqualTo(12));
             Assert.That(configuration.MiniGameDefinitions.All(miniGame => miniGame.ArePlayerKillersAllowedToEnter), Is.True);
         });
 
         Assert.That(configuration.Maps.Where(map => map.Number != 10).SelectMany(map => map.DropItemGroups).All(group => group.ItemType == SpecialItemType.Money), Is.True);
+        AssertIcarusAndKalimaSevenJewelDrops(configuration);
         Assert.That(configuration.Monsters.SelectMany(monster => monster.Quests).SelectMany(quest => quest.RequiredItems).Where(item => item.Item?.IsQuestItem == true).All(item => item.DropItemGroup is null), Is.True);
 
         this.AssertEquipmentProfile(configuration, 254, [0, 2, 3], 2, [(5, 0), (5, 2)]);
@@ -334,18 +359,26 @@ internal class TestInitializationWithEfCore
         Assert.That(configuration.DropItemGroups.Where(group => group.Monster is not null && group.ItemLevel is >= 8 and <= 12 && group.PossibleItems.Count == 1 && group.PossibleItems.Single() == kundunBox), Is.Empty);
 
         var bossNumbers = new HashSet<short> { 43, 44, 53, 54, 78, 79, 80, 81, 82, 83, 135, 161, 181, 189, 197, 267, 275, 295, 338, 361, 362, 363, 364, 440, 459 };
-        foreach (var boss in monsters.Where(monster => bossNumbers.Contains(monster.Number)))
+
+        // The Illusion of Kundun 7 (275) drops guaranteed jewels and gifts instead of the boss gacha groups;
+        // see AssertIcarusAndKalimaSevenJewelDrops.
+        foreach (var boss in monsters.Where(monster => bossNumbers.Contains(monster.Number) && monster.Number != 275))
         {
             Assert.That(boss.DropItemGroups.Intersect(gachaGroups), Is.EquivalentTo(gachaGroups.Skip(3)));
             Assert.That(boss.DropItemGroups.Where(group => group.Chance < 1.0), Is.EquivalentTo(gachaGroups.Skip(3)));
             Assert.That(boss.NumberOfMaximumItemDrops, Is.EqualTo(2));
         }
 
-        var regularMonsters = permanentMonsterSpawns.Select(spawn => spawn.MonsterDefinition!).Where(monster => !bossNumbers.Contains(monster.Number)).Distinct();
+        // The Kalima 7 regular monsters have their own box and jewel drops; see AssertIcarusAndKalimaSevenJewelDrops.
+        var kalimaSevenRegularNumbers = new HashSet<short> { 331, 332, 333, 334, 335, 336, 337 };
+        var regularMonsters = permanentMonsterSpawns
+            .Select(spawn => spawn.MonsterDefinition!)
+            .Where(monster => !bossNumbers.Contains(monster.Number) && !kalimaSevenRegularNumbers.Contains(monster.Number))
+            .Distinct();
         foreach (var monster in regularMonsters)
         {
             Assert.That(monster.DropItemGroups.Intersect(gachaGroups), Is.EquivalentTo(gachaGroups.Take(3)));
-            Assert.That(monster.DropItemGroups.Single(group => group.ItemType == SpecialItemType.Jewel).Chance, Is.EqualTo(0.01));
+            Assert.That(monster.DropItemGroups.Single(group => group.GetId() == DropGroupId(4)).Chance, Is.EqualTo(0.01));
             Assert.That(monster.NumberOfMaximumItemDrops, Is.EqualTo(2));
         }
 
@@ -736,6 +769,210 @@ internal class TestInitializationWithEfCore
             Assert.That(regularMonsters, Is.All.Matches<MonsterDefinition>(monster => monster.NumberOfMaximumItemDrops == 1));
             Assert.That(regularMonsters, Is.All.Matches<MonsterDefinition>(monster => monster.DropItemGroups.Contains(boxFourGroup)));
             Assert.That(regularMonsters.SelectMany(monster => monster.DropItemGroups), Has.None.Matches<DropItemGroup>(group => group.PossibleItems.Contains(boxOfKundun) && group.ItemLevel is >= 8 and <= 10));
+        });
+    }
+
+    /// <summary>
+    /// Tests that the jewel drop update repairs the retired map-level jewel groups and the
+    /// Illusion of Kundun 7 loot idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestRestructureIcarusAndKalimaSevenJewelDropsUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var jewelItems = new[]
+        {
+            configuration.Items.Single(item => item is { Group: 14, Number: 41 }),
+            configuration.Items.Single(item => item is { Group: 14, Number: 42 }),
+            configuration.Items.Single(item => item is { Group: 14, Number: 31 }),
+        };
+
+        // The initial data already contains the final state, so the jewel groups are removed first to get
+        // the state of a database which was still running the retired updates.
+        var jewelGroups = configuration.DropItemGroups
+            .Where(group => group.Monster is not null && group.PossibleItems.Count == 1 && jewelItems.Contains(group.PossibleItems.Single()))
+            .ToList();
+        foreach (var group in jewelGroups)
+        {
+            group.Monster!.DropItemGroups.Remove(group);
+            configuration.DropItemGroups.Remove(group);
+        }
+
+        await new ConfigureKalimaSevenRegularDropsUpdatePlugIn().ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await new RetuneKalimaSevenRegularMonstersUpdatePlugIn().ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await new IncreaseKalimaSevenBoxDropsUpdatePlugIn().ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await new ConfigureIllusionOfKundunSevenLootUpdatePlugIn().ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await new AddJewelDropsToIcarusAndKalima7UpdatePlugIn().ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var update = new RestructureIcarusAndKalimaSevenJewelDropsUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var dropGroupCount = configuration.DropItemGroups.Count;
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount), "the second application must not add groups");
+        AssertIcarusAndKalimaSevenJewelDrops(configuration);
+    }
+
+    /// <summary>
+    /// Asserts the final Icarus, Kalima 7 and Illusion of Kundun 7 jewel drop configuration.
+    /// </summary>
+    /// <param name="configuration">The game configuration.</param>
+    private static void AssertIcarusAndKalimaSevenJewelDrops(GameConfiguration configuration)
+    {
+        var gemstone = configuration.Items.Single(item => item is { Group: 14, Number: 41 });
+        var harmony = configuration.Items.Single(item => item is { Group: 14, Number: 42 });
+        var guardian = configuration.Items.Single(item => item is { Group: 14, Number: 31 });
+        var kundunBox = configuration.Items.Single(item => item is { Group: 14, Number: 11 });
+        var gmGift = configuration.Items.Single(item => item is { Group: 14, Number: 52 });
+        var icarus = configuration.Maps.Single(map => map is { Number: IcarusMapNumber, Discriminator: 0 });
+        var kalima7 = configuration.Maps.Single(map => map is { Number: 36, Discriminator: 0 });
+        var kundun7 = configuration.Monsters.Single(monster => monster.Number == 275);
+        var globalJewelDropGroupId = DropGroupId(4);
+        var boxFourDropGroupId = DropGroupId(9_999, 36, 1);
+        var boxFiveDropGroupId = DropGroupId(9_999, 36, 2);
+        var gachaRegularDropGroupIds = new short[] { 1, 2, 3 }.Select(number => DropGroupId(9_999, number)).ToList();
+        var retiredMapDropGroupIds = new[]
+        {
+            DropGroupId(IcarusMapNumber, 3),
+            DropGroupId(IcarusMapNumber, 4),
+            DropGroupId(36, 1),
+            DropGroupId(36, 2),
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configuration.DropItemGroups.Where(group => retiredMapDropGroupIds.Contains(group.GetId())), Is.Empty, "retired map-level jewel groups");
+            Assert.That(kalima7.DropItemGroups, Is.Empty, "Kalima 7 owns no map-level drop group");
+            Assert.That(icarus.DropItemGroups.Select(group => group.GetId()), Does.Contain(DropGroupId(1)), "Icarus money drop");
+            Assert.That(icarus.DropItemGroups.Select(group => group.GetId()), Does.Contain(DropGroupId(9_999, IcarusMapNumber, 4)), "Icarus box drop");
+        });
+
+        foreach (var (monsterNumber, gemstoneChance, harmonyChance, guardianChance) in KalimaSevenJewelDropRates)
+        {
+            var monster = configuration.Monsters.Single(monster => monster.Number == monsterNumber);
+            AssertJewelDropGroup(configuration, monster, gemstone, JewelDropGroupId(monsterNumber, 0), gemstoneChance);
+            AssertJewelDropGroup(configuration, monster, harmony, JewelDropGroupId(monsterNumber, 1), harmonyChance);
+            AssertJewelDropGroup(configuration, monster, guardian, JewelDropGroupId(monsterNumber, 2), guardianChance);
+            var boxFour = monster.DropItemGroups.Single(group => group.GetId() == boxFourDropGroupId);
+            var boxFive = monster.DropItemGroups.Single(group => group.GetId() == boxFiveDropGroupId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(monster.NumberOfMaximumItemDrops, Is.EqualTo(1), $"{monster.Designation}: max drops");
+                Assert.That(monster.DropItemGroups.Select(group => group.GetId()), Does.Contain(globalJewelDropGroupId), $"{monster.Designation}: jewel drop group");
+                Assert.That(monster.DropItemGroups.Where(group => gachaRegularDropGroupIds.Contains(group.GetId())), Is.Empty, $"{monster.Designation}: gacha boxes");
+                Assert.That(boxFour.Chance, Is.EqualTo(0.3817), $"{monster.Designation}: box +4 chance");
+                Assert.That(boxFour.ItemLevel, Is.EqualTo(11), $"{monster.Designation}: box +4 level");
+                Assert.That(boxFour.PossibleItems, Is.EquivalentTo(new[] { kundunBox }), $"{monster.Designation}: box +4 item");
+                Assert.That(boxFive.Chance, Is.EqualTo(0.3053), $"{monster.Designation}: box +5 chance");
+                Assert.That(boxFive.ItemLevel, Is.EqualTo(12), $"{monster.Designation}: box +5 level");
+            });
+        }
+
+        // Monster 76 has no spawn area, so the instant-server configuration never attached the regular groups to it.
+        var icarusSpawnedMonsterNumbers = icarus.MonsterSpawns.Select(spawn => spawn.MonsterDefinition!.Number).ToHashSet();
+        foreach (var (monsterNumber, gemstoneChance, harmonyChance) in IcarusJewelDropRates)
+        {
+            var monster = configuration.Monsters.Single(monster => monster.Number == monsterNumber);
+            AssertJewelDropGroup(configuration, monster, gemstone, JewelDropGroupId(monsterNumber, 0), gemstoneChance);
+            AssertJewelDropGroup(configuration, monster, harmony, JewelDropGroupId(monsterNumber, 1), harmonyChance);
+            Assert.Multiple(() =>
+            {
+                Assert.That(monster.NumberOfMaximumItemDrops, Is.EqualTo(2), $"{monster.Designation}: max drops");
+                if (icarusSpawnedMonsterNumbers.Contains(monsterNumber))
+                {
+                    Assert.That(monster.DropItemGroups.Select(group => group.GetId()), Does.Contain(globalJewelDropGroupId), $"{monster.Designation}: jewel drop group");
+                    Assert.That(monster.DropItemGroups.Select(group => group.GetId()), Is.SupersetOf(gachaRegularDropGroupIds), $"{monster.Designation}: gacha boxes");
+                }
+
+                Assert.That(configuration.DropItemGroups.Where(group => group.GetId() == JewelDropGroupId(monsterNumber, 2)), Is.Empty, $"{monster.Designation}: no Jewel of Guardian");
+            });
+        }
+
+        var kundunDropGroups = kundun7.DropItemGroups.ToList();
+        var retiredKundunDropGroupIds = Enumerable.Range(11, 6)
+            .Concat(Enumerable.Range(21, 6))
+            .Concat(Enumerable.Range(34, 3))
+            .Select(value => DropGroupId(9_999, kundun7.Number, (byte)value))
+            .ToList();
+        var gachaBossDropGroupIds = new short[] { 4, 5, 6 }.Select(number => DropGroupId(9_999, number)).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(kundun7.NumberOfMaximumItemDrops, Is.EqualTo(12), "Kundun 7: max drops");
+            Assert.That(kundunDropGroups, Has.Count.EqualTo(12), "Kundun 7: guaranteed drops");
+            Assert.That(kundunDropGroups, Is.All.Matches<DropItemGroup>(group => group is { Chance: 1.0 } && group.Monster == kundun7), "Kundun 7: guaranteed groups");
+            Assert.That(configuration.DropItemGroups.Where(group => retiredKundunDropGroupIds.Contains(group.GetId())), Is.Empty, "Kundun 7: retired box groups");
+            Assert.That(kundunDropGroups.Where(group => gachaBossDropGroupIds.Contains(group.GetId())), Is.Empty, "Kundun 7: boss gacha groups");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Single() == gmGift), Is.EqualTo(3), "Kundun 7: GM Gifts");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Single() == harmony), Is.EqualTo(6), "Kundun 7: Jewels of Harmony");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Single() == guardian), Is.EqualTo(3), "Kundun 7: Jewels of Guardian");
+            Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Single() == gmGift), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.RandomItem, ItemLevel: 0 }), "Kundun 7: GM Gift groups");
+            Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Single() != gmGift), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.Jewel, ItemLevel: null }), "Kundun 7: jewel groups");
+        });
+    }
+
+    /// <summary>
+    /// Creates the identifier of the drop item group of a single number.
+    /// </summary>
+    /// <param name="number">The number.</param>
+    /// <returns>The identifier.</returns>
+    private static Guid DropGroupId(short number)
+        => new(0x200, number, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    /// <summary>
+    /// Creates the identifier of the drop item group of a parent and child number.
+    /// </summary>
+    /// <param name="parentNumber">The parent number.</param>
+    /// <param name="number">The child number.</param>
+    /// <returns>The identifier.</returns>
+    private static Guid DropGroupId(short parentNumber, short number)
+        => new(0x200, parentNumber, number, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    /// <summary>
+    /// Creates the identifier of the drop item group of three numbers.
+    /// </summary>
+    /// <param name="parentNumber">The parent number.</param>
+    /// <param name="number">The child number.</param>
+    /// <param name="subNumber">The sub number.</param>
+    /// <returns>The identifier.</returns>
+    private static Guid DropGroupId(short parentNumber, short number, byte subNumber)
+        => new(0x200, parentNumber, number, subNumber, 0, 0, 0, 0, 0, 0, 0);
+
+    /// <summary>
+    /// Gets the identifier of the jewel drop group of a monster.
+    /// </summary>
+    /// <param name="monsterNumber">The number of the monster.</param>
+    /// <param name="itemIndex">The index of the item within the per-monster jewel groups.</param>
+    /// <returns>The identifier of the drop item group.</returns>
+    private static Guid JewelDropGroupId(short monsterNumber, byte itemIndex)
+        => new(0x200, 9_999, monsterNumber, (byte)(10 + itemIndex), 0, 0, 0, 0, 0, 0, 0);
+
+    /// <summary>
+    /// Asserts a single per-monster jewel drop group.
+    /// </summary>
+    /// <param name="configuration">The game configuration.</param>
+    /// <param name="monster">The monster which drops the jewel.</param>
+    /// <param name="item">The dropped item.</param>
+    /// <param name="id">The identifier of the drop item group.</param>
+    /// <param name="chance">The expected chance per kill.</param>
+    private static void AssertJewelDropGroup(GameConfiguration configuration, MonsterDefinition monster, ItemDefinition item, Guid id, double chance)
+    {
+        var groups = configuration.DropItemGroups.Where(group => group.GetId() == id).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(groups, Has.Count.EqualTo(1), $"{monster.Designation}: aggregate entries of group {id}");
+            Assert.That(monster.DropItemGroups.Count(group => group.GetId() == id), Is.EqualTo(1), $"{monster.Designation}: links of group {id}");
+            Assert.That(groups[0].Monster, Is.SameAs(monster), $"{monster.Designation}: owner of group {id}");
+            Assert.That(groups[0].PossibleItems, Is.EquivalentTo(new[] { item }), $"{monster.Designation}: items of group {id}");
+            Assert.That(groups[0].ItemType, Is.EqualTo(SpecialItemType.Jewel), $"{monster.Designation}: item type of group {id}");
+            Assert.That(groups[0].Chance, Is.EqualTo(chance), $"{monster.Designation}: chance of group {id}");
+            Assert.That(groups[0].MinimumMonsterLevel, Is.Null, $"{monster.Designation}: minimum level of group {id}");
+            Assert.That(groups[0].MaximumMonsterLevel, Is.Null, $"{monster.Designation}: maximum level of group {id}");
+            Assert.That(groups[0].ItemLevel, Is.Null, $"{monster.Designation}: item level of group {id}");
         });
     }
 

@@ -41,30 +41,6 @@ internal class Kalima7 : KalimaBase
     protected override string MapName => Name;
 
     /// <inheritdoc/>
-    protected override void InitializeDropItemGroups()
-    {
-        base.InitializeDropItemGroups();
-
-        var gemstone = this.GameConfiguration.Items.First(item => item.Group == 14 && item.Number == 41);
-        var gemstoneGroup = this.Context.CreateNew<DropItemGroup>();
-        gemstoneGroup.SetGuid(this.MapNumber, 1);
-        gemstoneGroup.Chance = 0.30;
-        gemstoneGroup.Description = "Gemstone";
-        gemstoneGroup.PossibleItems.Add(gemstone);
-        this.MapDefinition!.DropItemGroups.Add(gemstoneGroup);
-        this.GameConfiguration.DropItemGroups.Add(gemstoneGroup);
-
-        var jog = this.GameConfiguration.Items.First(item => item.Group == 14 && item.Number == 31);
-        var jogGroup = this.Context.CreateNew<DropItemGroup>();
-        jogGroup.SetGuid(this.MapNumber, 2);
-        jogGroup.Chance = 0.10;
-        jogGroup.Description = "Jewel of Guardian";
-        jogGroup.PossibleItems.Add(jog);
-        this.MapDefinition!.DropItemGroups.Add(jogGroup);
-        this.GameConfiguration.DropItemGroups.Add(jogGroup);
-    }
-
-    /// <inheritdoc/>
     protected override IEnumerable<MonsterSpawnArea> CreateMonsterSpawns()
     {
         yield return this.CreateMonsterSpawn(100, this.NpcDictionary[334], 120, 050); // Death Angel 7
@@ -395,18 +371,6 @@ internal class Kalima7 : KalimaBase
 
             monster.AddAttributes(attributes, this.Context, this.GameConfiguration);
             monster.SetGuid(monster.Number);
-
-            var harmony = this.GameConfiguration.Items.First(i => i.Group == 14 && i.Number == 42);
-            for (short i = 0; i < 5; i++)
-            {
-                var harmonyDrop = this.Context.CreateNew<DropItemGroup>();
-                harmonyDrop.SetGuid(monster.Number, (short)(10 + i));
-                harmonyDrop.Chance = 1.0;
-                harmonyDrop.Description = $"Jewel of Harmony (Kalima 7 Boss Drop) {i + 1}/5";
-                harmonyDrop.PossibleItems.Add(harmony);
-                monster.DropItemGroups.Add(harmonyDrop);
-                this.GameConfiguration.DropItemGroups.Add(harmonyDrop);
-            }
         }
     }
 }
