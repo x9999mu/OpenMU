@@ -43,6 +43,47 @@ public static class AttackableExtensions
     /// <param name="target">The attack target.</param>
     /// <param name="attacker">The attacker.</param>
     /// <returns><c>true</c>, if the attack is blocked; otherwise, <c>false</c>.</returns>
+    /// <summary>
+    /// Determines whether the attacker is allowed to attack the defender based on game rules (PvP enabled, party, guild war, safe zones).
+    /// </summary>
+    /// <param name="attacker">The attacker.</param>
+    /// <param name="defender">The defender.</param>
+    /// <returns><c>true</c> if the attack is allowed; otherwise, <c>false</c>.</returns>
+    public static bool IsAttackAllowed(this IAttacker attacker, IAttackable defender)
+    {
+        if (defender.IsAttackBlockedBySafezone(attacker))
+        {
+            return false;
+        }
+
+        var attackerAsPlayer = attacker as Player ?? (attacker as AttackerSurrogate)?.Owner;
+        var defenderAsPlayer = defender as Player;
+
+        if (attackerAsPlayer is not null && defenderAsPlayer is not null && attackerAsPlayer != defenderAsPlayer)
+        {
+            bool isDuel = attackerAsPlayer.DuelRoom != null && attackerAsPlayer.DuelRoom.Opponent == defenderAsPlayer;
+            bool isGuildWar = attackerAsPlayer.GuildWarContext?.Score is { } score && score == defenderAsPlayer.GuildWarContext?.Score;
+            
+            if (!defenderAsPlayer.GameContext.PvpEnabled
+                && defenderAsPlayer.CurrentMap?.Definition.BattleZone == null
+                && defenderAsPlayer.CurrentMiniGame?.AllowPlayerKilling != true
+                && !isDuel
+                && !isGuildWar)
+            {
+                return false;
+            }
+
+            if (attackerAsPlayer.Party != null
+                && attackerAsPlayer.Party == defenderAsPlayer.Party
+                && !isDuel)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static bool IsAttackBlockedBySafezone(this IAttackable target, IAttacker attacker)
     {
         if (target.IsAtSafezone())

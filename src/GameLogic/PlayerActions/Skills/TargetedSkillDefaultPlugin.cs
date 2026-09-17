@@ -129,6 +129,11 @@ public class TargetedSkillDefaultPlugin : TargetedSkillPluginBase
         {
             return;
         }
+        bool isAttack = skill.SkillType == SkillType.DirectHit || skill.SkillType == SkillType.CastleSiegeSkill;
+        if (isAttack && !player.IsAttackAllowed(target))
+        {
+            return;
+        }
 
         if (skill.MovesToTarget)
         {
@@ -277,11 +282,14 @@ public class TargetedSkillDefaultPlugin : TargetedSkillPluginBase
                 {
                     var hitInfo = await target.AttackByAsync(player, skillEntry, isCombo, 1, skill.NumberOfHitsPerAttack > 1 ? false : null).ConfigureAwait(false);
                     player.LastAttackedTarget.SetTarget(target);
-                    success = await target.TryApplyElementalEffectsAsync(player, skillEntry, hitInfo).ConfigureAwait(false) || success;
-
-                    for (int hit = 2; hit <= skill.NumberOfHitsPerAttack; hit++)
+                    if (hitInfo != null)
                     {
-                        await target.AttackByAsync(player, skillEntry, isCombo, 1, hit == skill.NumberOfHitsPerAttack).ConfigureAwait(false);
+                        success = await target.TryApplyElementalEffectsAsync(player, skillEntry, hitInfo).ConfigureAwait(false) || success;
+
+                        for (int hit = 2; hit <= skill.NumberOfHitsPerAttack; hit++)
+                        {
+                            await target.AttackByAsync(player, skillEntry, isCombo, 1, hit == skill.NumberOfHitsPerAttack).ConfigureAwait(false);
+                        }
                     }
                 }
             }

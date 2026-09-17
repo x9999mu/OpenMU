@@ -79,13 +79,19 @@ public class ChainLightningSkillPlugIn : IAreaSkillPlugIn
 
             // first attack 70 %
             var hit2Info = await secondTarget.AttackByAsync(attacker, skillEntry, false, 0.7).ConfigureAwait(false);
-            await secondTarget.TryApplyElementalEffectsAsync(attacker, skillEntry, hit2Info).ConfigureAwait(false);
+            if (hit2Info != null)
+            {
+                await secondTarget.TryApplyElementalEffectsAsync(attacker, skillEntry, hit2Info).ConfigureAwait(false);
+            }
 
             await Task.Delay(300).ConfigureAwait(false);
 
             // second attack 50%
             var hit3Info = await thirdTarget.AttackByAsync(attacker, skillEntry, false, 0.5).ConfigureAwait(false);
-            await thirdTarget.TryApplyElementalEffectsAsync(attacker, skillEntry, hit3Info).ConfigureAwait(false);
+            if (hit3Info != null)
+            {
+                await thirdTarget.TryApplyElementalEffectsAsync(attacker, skillEntry, hit3Info).ConfigureAwait(false);
+            }
         });
     }
 }

@@ -71,6 +71,11 @@ public class HitAction
         }
 
         player.Rotation = lookingDirection;
+        if (!player.IsAttackAllowed(target))
+        {
+            return;
+        }
+        
         await target.AttackByAsync(player, null, false).ConfigureAwait(false);
         if (player.Attributes?[Stats.TransformationSkin] is { } skin and not 0
             && await this.ApplySkinnedMonstersSkillAsync(player, target, (short)skin).ConfigureAwait(false) is var (skill, effectApplied))
