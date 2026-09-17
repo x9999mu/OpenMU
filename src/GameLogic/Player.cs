@@ -690,10 +690,22 @@ public class Player : AsyncDisposable, IBucketMapObserver, IAttackable, IAttacke
             return null;
         }
 
-        if (!this.GameContext.PvpEnabled && this.CurrentMap?.Definition.BattleZone == null &&
-            this.CurrentMiniGame?.AllowPlayerKilling is false)
+        var attackerAsPlayer = attacker as Player ?? (attacker as AttackerSurrogate)?.Owner;
+        if (attackerAsPlayer is not null && attackerAsPlayer != this)
         {
-            return null;
+            if (!this.GameContext.PvpEnabled
+                && this.CurrentMap?.Definition.BattleZone == null
+                && this.CurrentMiniGame?.AllowPlayerKilling != true)
+            {
+                return null;
+            }
+
+            if (attackerAsPlayer.Party != null
+                && attackerAsPlayer.Party == this.Party
+                && attackerAsPlayer.DuelRoom?.Opponent != this)
+            {
+                return null;
+            }
         }
 
         var hitInfo = await attacker.CalculateDamageAsync(this, skill, isCombo, damageFactor).ConfigureAwait(false);
