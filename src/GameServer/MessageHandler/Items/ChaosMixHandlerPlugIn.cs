@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameServer.MessageHandler.Items;
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.GameLogic.PlayerActions.Items;
 using MUnique.OpenMU.GameLogic.Views.NPC;
@@ -56,6 +57,11 @@ internal class ChaosMixHandlerPlugIn : IPacketHandlerPlugIn
                 if (crafting is not null)
                 {
                     mixType = crafting.Number;
+                    player.Logger.LogInformation("Client sent mix type 0; resolved to crafting {0} ({1}).", crafting.Name, crafting.Number);
+                }
+                else
+                {
+                    player.Logger.LogWarning("Client sent mix type 0, but no crafting of the opened npc fits to the items in the craft box.");
                 }
             }
         }

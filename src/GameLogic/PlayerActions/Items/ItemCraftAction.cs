@@ -23,10 +23,21 @@ public class ItemCraftAction
     public async ValueTask MixItemsAsync(Player player, byte mixTypeId, byte socketSlot)
     {
         var npcStats = player.OpenedNpc?.Definition;
+        player.Logger.LogInformation(
+            "Crafting request: Mix type {0}, socket slot {1}, npc {2}, items in the craft box: {3}",
+            mixTypeId,
+            socketSlot,
+            npcStats?.Designation,
+            GetItemsDescription(player));
 
         var crafting = npcStats?.ItemCraftings.FirstOrDefault(c => c.Number == mixTypeId);
         if (crafting is null)
         {
+            player.Logger.LogWarning(
+                "Crafting request with mix type {0} doesn't match any crafting of npc {1}; answering IncorrectMixItems. Items in the craft box: {2}",
+                mixTypeId,
+                npcStats?.Designation,
+                GetItemsDescription(player));
             await player.InvokeViewPlugInAsync<IShowItemCraftingResultPlugIn>(p => p.ShowResultAsync(CraftingResult.IncorrectMixItems, null)).ConfigureAwait(false);
             return;
         }
@@ -42,10 +53,18 @@ public class ItemCraftAction
         {
             result = await craftingHandler.DoMixAsync(player, socketSlot).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
+            player.Logger.LogError(ex, "Unexpected error while executing crafting {0} (mix type {1})", crafting.Name, mixTypeId);
             result = (CraftingResult.LackingMixItems, null);
         }
+
+        player.Logger.LogInformation(
+            "Crafting {0} (mix type {1}) finished with result {2}. Items in the craft box afterwards: {3}",
+            crafting.Name,
+            mixTypeId,
+            result.Item1,
+            GetItemsDescription(player));
 
         var itemList = player.TemporaryStorage?.Items.ToList() ?? new List<Item>();
         await player.InvokeViewPlugInAsync<IShowItemCraftingResultPlugIn>(p => p.ShowResultAsync(result.Item1, itemList.Count > 1 ? null : result.Item2)).ConfigureAwait(false);
@@ -54,6 +73,14 @@ public class ItemCraftAction
                 itemList,
                 npcStats!.NpcWindow == NpcWindow.PetTrainer && result.Item1 != CraftingResult.Success ? StoreKind.ResurrectionFailed : StoreKind.ChaosMachine))
             .ConfigureAwait(false);
+    }
+
+    private static string GetItemsDescription(Player player)
+    {
+        var items = player.TemporaryStorage?.Items;
+        return items is null || !items.Any()
+            ? "none"
+            : string.Join(", ", items.Select(i => i.ToString()));
     }
 
     /// <summary>

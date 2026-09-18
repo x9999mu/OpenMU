@@ -103,6 +103,9 @@ public class SimpleItemCraftingHandler : BaseItemCraftingHandler
         // The list of unprocessed items must be empty now; otherwise, something is wrong.
         if (storage.Any())
         {
+            player.Logger.LogWarning(
+                "IncorrectMixItems: These items in the craft box don't match any requirement of the crafting: {0}",
+                string.Join(", ", storage.Select(i => i.ToString())));
             return CraftingResult.IncorrectMixItems;
         }
 
