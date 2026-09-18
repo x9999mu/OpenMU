@@ -764,4 +764,9 @@ public enum UpdateVersion
     /// The version of the <see cref="FixMasterSkillClassAssignmentsUpdatePlugIn"/>.
     /// </summary>
     FixMasterSkillClassAssignments = 151,
+
+    /// <summary>
+    /// The version of the <see cref="AddPotionGirlFenrirMaterialsUpdatePlugIn"/>.
+    /// </summary>
+    AddPotionGirlFenrirMaterials = 152,
 }

@@ -1093,6 +1093,12 @@ internal static class InstantServerConfiguration
             }
         }
 
+        // Fenrir crafting materials and the Horn of Uniria for the Dinorant mix.
+        foreach (var number in new short[] { 2, 32, 33, 34 })
+        {
+            packer.Add(CreateStoreItem(context, GetItemDefinition(gameConfiguration, 13, number)));
+        }
+
         packer.Add(CreateStoreItem(context, GetItemDefinition(gameConfiguration, 13, 53)));
     }
 
