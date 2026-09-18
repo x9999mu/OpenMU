@@ -7,6 +7,7 @@ namespace MUnique.OpenMU.Persistence.Initialization.Updates;
 using MUnique.OpenMU.DataModel.Configuration;
 using MUnique.OpenMU.DataModel.Configuration.Items;
 using MUnique.OpenMU.DataModel.Entities;
+using MUnique.OpenMU.Persistence.Initialization.Items;
 
 /// <summary>
 /// Configures the item which the seed master sells as material for the seed extraction crafting.
