@@ -970,7 +970,7 @@ internal class SkillsInitializer : SkillsInitializerBase
         this.EnsurePassiveSkill(SkillNumber.AddsCommandStat, "Adds Command Stat", CharacterClasses.LordEmperor, 17);
         this.EnsurePassiveSkill(SkillNumber.IncreaseMaximumAg, "Increase Maximum AG", CharacterClasses.FistMaster, 37);
         this.EnsurePassiveSkill(SkillNumber.DarkSpiritStr4, "Dark Spirit Strengthener (4)", CharacterClasses.LordEmperor, 23);
-        this.EnsurePassiveSkill(SkillNumber.MaximumAttackPowerInc, "Maximum Attack Power Increase", CharacterClasses.LordEmperor, 3);
+        this.EnsurePassiveSkill(SkillNumber.MaximumAttackPowerInc, "Maximum Attack Power Increase", CharacterClasses.BladeMaster | CharacterClasses.DuelMaster | CharacterClasses.LordEmperor, 3);
         this.EnsurePassiveSkill(SkillNumber.DarkSpiritStr5, "Dark Spirit Strengthener (5)", CharacterClasses.LordEmperor, 1);
         this.EnsurePassiveSkill(SkillNumber.SpiritLord, "Spirit Lord", CharacterClasses.LordEmperor, 1);
         this.EnsurePassiveSkill(SkillNumber.IncreaseMaximumAttackPower, "Increase Maximum Attack Power", CharacterClasses.FistMaster, 3);
@@ -981,8 +981,8 @@ internal class SkillsInitializer : SkillsInitializerBase
         this.EnsurePassiveSkill(SkillNumber.IncreaseDoubleDamageChance, "Increase Double Damage Chance", CharacterClasses.FistMaster, 38);
         this.EnsurePassiveSkill(SkillNumber.IncreaseIgnoreDefChance, "Increase Ignore Def Chance", CharacterClasses.FistMaster, 38);
         this.EnsurePassiveSkill(SkillNumber.RecoversSdFully, "Recovers SD Fully", CharacterClasses.FistMaster, 38);
-        this.EnsurePassiveSkill(SkillNumber.RestoresallSd, "Restores Full SD", CharacterClasses.LordEmperor, 1);
-        this.EnsurePassiveSkill(SkillNumber.IncchanceofignoreDef, "Increase Ignore Defense Rate", CharacterClasses.LordEmperor, 1);
+        this.EnsurePassiveSkill(SkillNumber.RestoresallSd, "Restores Full SD", CharacterClasses.AllMastersExceptFistMaster, 1);
+        this.EnsurePassiveSkill(SkillNumber.IncchanceofignoreDef, "Increase Ignore Defense Rate", CharacterClasses.AllMastersExceptFistMaster, 1);
         this.EnsurePassiveSkill(SkillNumber.ArmorSetBonusInc, "Armor Set Bonus Increase", CharacterClasses.AllMastersExceptFistMaster, 17);
         this.EnsurePassiveSkill(SkillNumber.Vengeance, "Vengeance", CharacterClasses.AllMastersExceptFistMaster, 1);
         this.EnsurePassiveSkill(SkillNumber.EnergyIncrease, "Energy Increase", CharacterClasses.AllMastersExceptFistMaster, 17);
@@ -1066,12 +1066,29 @@ internal class SkillsInitializer : SkillsInitializerBase
 
     private void EnsurePassiveSkill(SkillNumber skillNumber, string name, CharacterClasses characterClasses, int damage)
     {
-        if (this.GameConfiguration.Skills.Any(skill => skill.Number == (short)skillNumber))
+        if (this.GameConfiguration.Skills.FirstOrDefault(skill => skill.Number == (short)skillNumber) is { } existingSkill)
         {
+            this.EnsureQualifiedCharacters(existingSkill, characterClasses);
             return;
         }
 
         this.CreateSkill(skillNumber, name, characterClasses, damage: damage, skillType: SkillType.PassiveBoost);
+    }
+
+    /// <summary>
+    /// Ensures that the specified skill can be learned by all character classes of the specified flags.
+    /// </summary>
+    /// <param name="skill">The skill.</param>
+    /// <param name="characterClasses">The character classes which should be able to learn the skill.</param>
+    private void EnsureQualifiedCharacters(Skill skill, CharacterClasses characterClasses)
+    {
+        foreach (var characterClass in this.GameConfiguration.DetermineCharacterClasses(characterClasses))
+        {
+            if (!skill.QualifiedCharacters.Contains(characterClass))
+            {
+                skill.QualifiedCharacters.Add(characterClass);
+            }
+        }
     }
 
     private void EnsureMasterSkillRoots()

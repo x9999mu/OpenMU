@@ -21,6 +21,7 @@ using MUnique.OpenMU.Pathfinding;
 using MUnique.OpenMU.Persistence.EntityFramework;
 using MUnique.OpenMU.GameLogic.PlugIns.ChatCommands;
 using MUnique.OpenMU.Persistence.Initialization.Updates;
+using MUnique.OpenMU.Persistence.Initialization.CharacterClasses;
 using MUnique.OpenMU.Persistence.InMemory;
 
 /// <summary>
@@ -1557,6 +1558,72 @@ internal class TestInitializationWithEfCore
             Assert.That(configuration.Skills.Single(skill => skill.Number == 320).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.TotalStrength));
             Assert.That(configuration.Skills.Single(skill => skill.Number == 367).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.FullyRecoverManaAfterHitChance));
             Assert.That(configuration.Skills.Single(skill => skill.Number == 443).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.MaximumPhysBaseDmg));
+        });
+    }
+
+    /// <summary>
+    /// Tests that the master skills which are part of the blade master tree can be learned by it,
+    /// and that the update plugin repairs the class assignments of existing configurations.
+    /// </summary>
+    [Test]
+    public async Task TestFixMasterSkillClassAssignmentsUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var bladeMaster = configuration.CharacterClasses.Single(characterClass => characterClass.Number == (int)CharacterClassNumber.BladeMaster);
+        var lordEmperor = configuration.CharacterClasses.Single(characterClass => characterClass.Number == (int)CharacterClassNumber.LordEmperor);
+        var fistMaster = configuration.CharacterClasses.Single(characterClass => characterClass.Number == (int)CharacterClassNumber.FistMaster);
+        // Maximum Attack Power Increase, Increase Ignore Defense Rate and Restores Full SD.
+        short[] bladeMasterSkills = [364, 371, 372];
+
+        Assert.Multiple(() =>
+        {
+            foreach (var skillNumber in bladeMasterSkills)
+            {
+                Assert.That(
+                    configuration.Skills.Single(skill => skill.Number == skillNumber).QualifiedCharacters,
+                    Does.Contain(bladeMaster),
+                    $"Expected that the blade master can learn skill {skillNumber}.");
+            }
+        });
+
+        // Simulate the state of a configuration which was initialized before this update.
+        foreach (var skillNumber in bladeMasterSkills)
+        {
+            var skill = configuration.Skills.Single(skill => skill.Number == skillNumber);
+            skill.QualifiedCharacters.Clear();
+            skill.QualifiedCharacters.Add(lordEmperor);
+        }
+
+        var update = new FixMasterSkillClassAssignmentsUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var classCountsAfterFirstRun = bladeMasterSkills.ToDictionary(
+            skillNumber => skillNumber,
+            skillNumber => configuration.Skills.Single(skill => skill.Number == skillNumber).QualifiedCharacters.Count);
+
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.Multiple(() =>
+        {
+            foreach (var skillNumber in bladeMasterSkills)
+            {
+                var qualifiedCharacters = configuration.Skills.Single(skill => skill.Number == skillNumber).QualifiedCharacters;
+                Assert.That(qualifiedCharacters, Does.Contain(bladeMaster), $"Expected that the blade master can learn skill {skillNumber}.");
+                Assert.That(qualifiedCharacters, Has.Count.EqualTo(classCountsAfterFirstRun[skillNumber]), $"Expected that skill {skillNumber} does not get duplicated class assignments.");
+            }
+
+            var maximumAttackPower = configuration.Skills.Single(skill => skill.Number == 364).QualifiedCharacters;
+            Assert.That(
+                maximumAttackPower.Select(characterClass => characterClass.Number),
+                Is.EquivalentTo(new[] { (int)CharacterClassNumber.BladeMaster, (int)CharacterClassNumber.DuelMaster, (int)CharacterClassNumber.LordEmperor }));
+
+            var restoresFullSd = configuration.Skills.Single(skill => skill.Number == 372).QualifiedCharacters;
+            Assert.That(restoresFullSd, Does.Not.Contain(fistMaster));
+            Assert.That(restoresFullSd.Count, Is.EqualTo(6), "Expected that all master classes except the fist master can learn the skill.");
         });
     }
 

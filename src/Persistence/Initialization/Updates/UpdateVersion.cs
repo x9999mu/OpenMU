@@ -759,4 +759,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddRemainingClientMasterSkillsUpdatePlugIn"/>.
     /// </summary>
     AddRemainingClientMasterSkills = 150,
+
+    /// <summary>
+    /// The version of the <see cref="FixMasterSkillClassAssignmentsUpdatePlugIn"/>.
+    /// </summary>
+    FixMasterSkillClassAssignments = 151,
 }
