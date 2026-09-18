@@ -13,7 +13,7 @@ using MUnique.OpenMU.Persistence.Initialization.Items;
 using MUnique.OpenMU.PlugIns;
 
 /// <summary>
-/// Adds an Ancient item with a +4 option to Rhea's Elvenland store for Seed Extraction.
+/// Adds the ancient item to Rhea's Elvenland store which is required for the seed extraction.
 /// </summary>
 [PlugIn]
 [Display(Name = PlugInName, Description = PlugInDescription)]
@@ -28,12 +28,7 @@ public sealed class AddAncientSeedExtractionMaterialToRheaStoreUpdatePlugIn : Up
     /// <summary>
     /// The update description.
     /// </summary>
-    internal const string PlugInDescription = "Adds a Semeden Red Wing Helm with a +4 option to Rhea's Elvenland store for Seed Extraction.";
-
-    private const short RheaNpcNumber = 416;
-    private const byte RedWingHelmNumber = 40;
-    private const string AncientSetName = "Semeden";
-    private const int AncientSetDiscriminator = 2;
+    internal const string PlugInDescription = "Adds a +4 Semeden Red Wing Helm with an ancient bonus option to Rhea's Elvenland store, so it can be used for the seed extraction.";
 
     /// <inheritdoc />
     public override UpdateVersion Version => UpdateVersion.AddAncientSeedExtractionMaterialToRheaStore;
@@ -56,15 +51,17 @@ public sealed class AddAncientSeedExtractionMaterialToRheaStoreUpdatePlugIn : Up
     /// <inheritdoc />
     protected override async ValueTask ApplyAsync(IContext context, GameConfiguration gameConfiguration)
     {
-        var rheaStore = gameConfiguration.Monsters.FirstOrDefault(monster => monster.Number == RheaNpcNumber)?.MerchantStore;
-        if (rheaStore is null)
+        var rheaStore = gameConfiguration.Monsters
+            .FirstOrDefault(monster => monster.Number == AncientSeedExtractionMaterial.RheaNpcNumber)?.MerchantStore;
+        var definition = AncientSeedExtractionMaterial.FindItemDefinition(gameConfiguration);
+        var ancientItem = definition is null
+            ? null
+            : AncientSeedExtractionMaterial.FindAncientSetItem(gameConfiguration, definition);
+        if (rheaStore is null || definition is null || ancientItem is null)
         {
             return;
         }
 
-        var definition = gameConfiguration.Items.Single(item => item.Group == (byte)ItemGroups.Helm && item.Number == RedWingHelmNumber);
-        var ancientItem = gameConfiguration.ItemSetGroups.Single(group => group.Name == AncientSetName).Items
-            .Single(item => item.ItemDefinition == definition && item.AncientSetDiscriminator == AncientSetDiscriminator);
         if (rheaStore.Items.Any(item => item.Definition == definition && item.ItemSetGroups.Contains(ancientItem)))
         {
             return;
@@ -73,11 +70,12 @@ public sealed class AddAncientSeedExtractionMaterialToRheaStoreUpdatePlugIn : Up
         var item = context.CreateNew<Item>();
         item.Definition = definition;
         item.Durability = definition.Durability;
-        item.ItemSetGroups.Add(ancientItem);
+        AncientSeedExtractionMaterial.MakeUsableForSeedExtraction(context, item, ancientItem);
+
         var option = context.CreateNew<ItemOptionLink>();
         option.ItemOption = definition.PossibleItemOptions.SelectMany(options => options.PossibleOptions)
             .Single(itemOption => itemOption.OptionType == ItemOptionTypes.Option);
-        option.Level = 1; // The first additional-option level is displayed as +4.
+        option.Level = 1;
         item.ItemOptions.Add(option);
 
         var storage = new Storage(InventoryConstants.WarehouseSize, rheaStore);

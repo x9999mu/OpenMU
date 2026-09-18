@@ -744,4 +744,14 @@ public enum UpdateVersion
     /// The version of the <see cref="EnableSphereFourAndFiveMonsterDropsUpdatePlugIn"/>.
     /// </summary>
     EnableSphereFourAndFiveMonsterDrops = 147,
+
+    /// <summary>
+    /// The version of the <see cref="AddClientMasterSkillsUpdatePlugIn"/>.
+    /// </summary>
+    AddClientMasterSkills = 148,
+
+    /// <summary>
+    /// The version of the <see cref="FixAncientSeedExtractionMaterialAtRheaStoreUpdatePlugIn"/>.
+    /// </summary>
+    FixAncientSeedExtractionMaterialAtRheaStore = 149,
 }
