@@ -1019,7 +1019,7 @@ internal class SkillsInitializer : SkillsInitializerBase
         this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseStrength, Stats.TotalStrength, AggregateType.AddRaw, Formula120, 1, 1);
         this.AddPassiveMasterSkillDefinition(SkillNumber.ReigningCloakDefenseIncrease, Stats.DefenseFinal, AggregateType.AddFinal, Formula120, 1, 1);
         this.AddPassiveMasterSkillDefinition(SkillNumber.ReigningCloakAttackIncrease, Stats.MaximumPhysBaseDmg, AggregateType.AddRaw, Formula120, 1, 1, SkillNumber.ReigningCloakDefenseIncrease);
-        this.AddPassiveMasterSkillDefinition(SkillNumber.AddsCommandStat, Stats.BaseLeadership, AggregateType.AddRaw, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.AddsCommandStat, Stats.TotalLeadership, AggregateType.AddRaw, Formula120, 1, 1);
         this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseMaximumAg, Stats.MaximumAbility, AggregateType.AddRaw, Formula120, 1, 2, SkillNumber.IncreaseMaximumMana);
         this.AddPassiveMasterSkillDefinition(SkillNumber.DarkSpiritStr4, Stats.RavenAttackSpeed, AggregateType.AddRaw, Formula120, 1, 3);
         this.AddPassiveMasterSkillDefinition(SkillNumber.MaximumAttackPowerInc, Stats.MaximumPhysBaseDmg, AggregateType.AddRaw, Formula502, 1, 3, SkillNumber.MinimumAttackPowerInc);

@@ -774,4 +774,9 @@ public enum UpdateVersion
     /// The version of the <see cref="RepairPotionGirlFenrirMaterialsUpdatePlugIn"/>.
     /// </summary>
     RepairPotionGirlFenrirMaterials = 153,
+
+    /// <summary>
+    /// The version of the <see cref="FixAddsCommandStatTargetAttributeUpdatePlugIn"/>.
+    /// </summary>
+    FixAddsCommandStatTargetAttribute = 154,
 }
