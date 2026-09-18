@@ -769,4 +769,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddPotionGirlFenrirMaterialsUpdatePlugIn"/>.
     /// </summary>
     AddPotionGirlFenrirMaterials = 152,
+
+    /// <summary>
+    /// The version of the <see cref="RepairPotionGirlFenrirMaterialsUpdatePlugIn"/>.
+    /// </summary>
+    RepairPotionGirlFenrirMaterials = 153,
 }

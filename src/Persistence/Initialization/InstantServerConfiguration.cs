@@ -1094,9 +1094,12 @@ internal static class InstantServerConfiguration
         }
 
         // Fenrir crafting materials and the Horn of Uniria for the Dinorant mix.
+        // They must be sold with their full durability, because the client-side mix recipes check
+        // the durability range and the Dinorant mix requires undamaged horns (255 life).
         foreach (var number in new short[] { 2, 32, 33, 34 })
         {
-            packer.Add(CreateStoreItem(context, GetItemDefinition(gameConfiguration, 13, number)));
+            var definition = GetItemDefinition(gameConfiguration, 13, number);
+            packer.Add(CreateStoreItem(context, definition, durability: definition.Durability));
         }
 
         packer.Add(CreateStoreItem(context, GetItemDefinition(gameConfiguration, 13, 53)));
