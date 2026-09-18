@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.GameLogic.PlayerActions.Character;
 
 using MUnique.OpenMU.GameLogic.Views.Character;
+using MUnique.OpenMU.GameLogic.Properties;
 
 /// <summary>
 /// Action to add a master skill point to learn or increase the level of a master skill.
@@ -30,6 +31,7 @@ public class AddMasterPointAction
         if (player.SelectedCharacter.MasterLevelUpPoints < 1)
         {
             player.Logger.LogWarning("No free master level up point, player {0}", player);
+            await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.NotEnoughLevelUpPointsAvailable)).ConfigureAwait(false);
             return;
         }
 
@@ -37,12 +39,14 @@ public class AddMasterPointAction
         if (skill is null)
         {
             player.Logger.LogWarning("Skill {0} does not exist, player {1}", skillId, player);
+            await ShowRejectedMessageAsync(player, $"skill {skillId} does not exist").ConfigureAwait(false);
             return;
         }
 
         if (skill.MasterDefinition is null)
         {
             player.Logger.LogWarning("Not a master skill, skillId: {0}, player {1}", skill.Number, player);
+            await ShowRejectedMessageAsync(player, $"skill {skill.Number} is not a master skill").ConfigureAwait(false);
             return;
         }
 
@@ -50,25 +54,34 @@ public class AddMasterPointAction
         if (learnedSkill is null)
         {
             player.Logger.LogDebug("Trying to add master skill, skillId: {0}, player {1}", skill.Number, player);
-            if (this.CheckRequisitions(player, skill))
+            if (this.GetUnfulfilledRequirement(player, skill) is { } unfulfilledRequirement)
             {
-                player.Logger.LogDebug("Adding master skill, skillId: {0}, player {1}", skill.Number, player);
-                await player.SkillList!.AddLearnedSkillAsync(skill).ConfigureAwait(false);
-                learnedSkill = player.SkillList?.GetSkill(skillId);
-                if (learnedSkill is { })
-                {
-                    await this.AddMasterPointToLearnedSkillAsync(player, learnedSkill).ConfigureAwait(false);
-                }
-                else
-                {
-                    player.Logger.LogDebug($"Learned Skill {skillId} not found.");
-                }
+                player.Logger.LogWarning("Master skill {0} {1} not added, player {2}: {3}", skill.Number, skill.Name, player, unfulfilledRequirement);
+                await ShowRejectedMessageAsync(player, unfulfilledRequirement).ConfigureAwait(false);
+                return;
+            }
+
+            player.Logger.LogDebug("Adding master skill, skillId: {0}, player {1}", skill.Number, player);
+            await player.SkillList!.AddLearnedSkillAsync(skill).ConfigureAwait(false);
+            learnedSkill = player.SkillList?.GetSkill(skillId);
+            if (learnedSkill is { })
+            {
+                await this.AddMasterPointToLearnedSkillAsync(player, learnedSkill).ConfigureAwait(false);
+            }
+            else
+            {
+                player.Logger.LogDebug($"Learned Skill {skillId} not found.");
             }
         }
         else
         {
             await this.AddMasterPointToLearnedSkillAsync(player, learnedSkill).ConfigureAwait(false);
         }
+    }
+
+    private static async ValueTask ShowRejectedMessageAsync(Player player, string reason)
+    {
+        await player.ShowLocalizedBlueMessageAsync(nameof(PlayerMessage.MasterSkillLevelUpFailed), reason).ConfigureAwait(false);
     }
 
     private async ValueTask AddMasterPointToLearnedSkillAsync(Player player, SkillEntry learnedSkill)
@@ -100,33 +113,29 @@ public class AddMasterPointAction
         }
     }
 
-    private bool CheckRequisitions(Player player, Skill skill)
+    private string? GetUnfulfilledRequirement(Player player, Skill skill)
     {
         if (player.SelectedCharacter!.MasterLevelUpPoints < skill.MasterDefinition!.MinimumLevel)
         {
-            player.Logger.LogWarning("Not enough master level up points, player {0}, available {1}, required {2}", player, player.SelectedCharacter.MasterLevelUpPoints, skill.MasterDefinition.MinimumLevel);
-            return false;
+            return $"not enough master level up points (available {player.SelectedCharacter.MasterLevelUpPoints}, required {skill.MasterDefinition.MinimumLevel})";
         }
 
         if (!skill.QualifiedCharacters.Contains(player.SelectedCharacter.CharacterClass!))
         {
-            player.Logger.LogWarning("Character not in a qualified class to learn the skill, account {0}, character {1}", player.Account!.LoginName, player.SelectedCharacter.Name);
-            return false;
+            return $"the character class can't learn this skill";
         }
 
         if (!this.CheckRank(skill.MasterDefinition, player.SelectedCharacter))
         {
-            player.Logger.LogWarning("No skill of the previous rank at the required minimum level of {0}, player {1}, skill {2} {3}", MinimumSkillLevelOfRequiredSkill, player, skill.Number, skill.Name);
-            return false;
+            return $"a skill of the previous rank must be at level {MinimumSkillLevelOfRequiredSkill}";
         }
 
         if (!this.CheckRequiredSkill(skill.MasterDefinition, player))
         {
-            player.Logger.LogWarning("Required skill not available of not at the required minimum level of {0}, player {1}, skill {2} {3}", MinimumSkillLevelOfRequiredSkill, player, skill.Number, skill.Name);
-            return false;
+            return $"the required skills must be at level {MinimumSkillLevelOfRequiredSkill}";
         }
 
-        return true;
+        return null;
     }
 
     private bool CheckRank(MasterSkillDefinition definition, DataModel.Entities.Character character)

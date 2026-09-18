@@ -669,6 +669,9 @@
   <data name="MasterLevelUpCongrats" xml:space="preserve">
     <value>Congratulations, you are Master Level {0} now.</value>
   </data>
+  <data name="MasterSkillLevelUpFailed" xml:space="preserve">
+    <value>The master skill could not be increased: {0}</value>
+  </data>
   <data name="YouGotKilledBy" xml:space="preserve">
     <value>You got killed by {0}</value>
   </data>

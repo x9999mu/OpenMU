@@ -950,6 +950,15 @@ namespace MUnique.OpenMU.GameLogic.Properties {
                 return ResourceManager.GetString("MasterLevelUpCongrats", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The master skill could not be increased: {0}.
+        /// </summary>
+        public static string MasterSkillLevelUpFailed {
+            get {
+                return ResourceManager.GetString("MasterSkillLevelUpFailed", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Master level-up points of &apos;{0}&apos;: {1}..
