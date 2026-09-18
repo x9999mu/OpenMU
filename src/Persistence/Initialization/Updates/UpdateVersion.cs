@@ -739,4 +739,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddAncientSeedExtractionMaterialToRheaStoreUpdatePlugIn"/>.
     /// </summary>
     AddAncientSeedExtractionMaterialToRheaStore = 146,
+
+    /// <summary>
+    /// The version of the <see cref="EnableSphereFourAndFiveMonsterDropsUpdatePlugIn"/>.
+    /// </summary>
+    EnableSphereFourAndFiveMonsterDrops = 147,
 }

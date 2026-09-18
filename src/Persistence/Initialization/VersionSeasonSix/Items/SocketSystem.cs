@@ -83,8 +83,11 @@ public class SocketSystem : InitializerBase
         this.CreateSphere(70, "Sphere (Mono)", 102);
         this.CreateSphere(71, "Sphere (Di)", 122);
         this.CreateSphere(72, "Sphere (Tri)", 132);
-        this.CreateSphere(73, "Sphere (4)", null);
-        this.CreateSphere(74, "Sphere (5)", null);
+        this.CreateSphere(73, "Sphere (4)", 142);
+        this.CreateSphere(74, "Sphere (5)", 145);
+
+        this.CreateSphereDropGroup(73, 142);
+        this.CreateSphereDropGroup(74, 145);
 
         for (byte level = 0; level < SphereLevels; level++)
         {
@@ -507,6 +510,24 @@ public class SocketSystem : InitializerBase
         itemDefinition.DropsFromMonsters = dropLevel.HasValue;
         itemDefinition.SetGuid(itemDefinition.Group, itemDefinition.Number);
         this.GameConfiguration.Items.Add(itemDefinition);
+    }
+
+    private void CreateSphereDropGroup(byte number, byte minimumMonsterLevel)
+    {
+        var sphere = this.GameConfiguration.Items.Single(item => item is { Group: 12 } && item.Number == number);
+        var dropGroup = this.Context.CreateNew<DropItemGroup>();
+        dropGroup.SetGuid((short)12, (short)number, 147);
+        dropGroup.Description = $"The improved drop item group for {sphere.Name}";
+        dropGroup.Chance = 0.02; // 2 percent
+        dropGroup.MinimumMonsterLevel = minimumMonsterLevel;
+        dropGroup.MaximumMonsterLevel = byte.MaxValue;
+        dropGroup.PossibleItems.Add(sphere);
+        this.GameConfiguration.DropItemGroups.Add(dropGroup);
+
+        foreach (var map in this.GameConfiguration.Maps)
+        {
+            map.DropItemGroups.Add(dropGroup);
+        }
     }
 
     private void CreateSeedSphere(byte number, string name, byte level, ItemOptionDefinition options)

@@ -1463,6 +1463,57 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that Sphere (4) and Sphere (5) can drop from monsters.
+    /// </summary>
+    [Test]
+    public async Task TestEnableSphereFourAndFiveMonsterDropsUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var update = new EnableSphereFourAndFiveMonsterDropsUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var sphere4 = configuration.Items.Single(item => item is { Group: 12, Number: 73 });
+        var sphere5 = configuration.Items.Single(item => item is { Group: 12, Number: 74 });
+        var sphere4Groups = configuration.DropItemGroups
+            .Where(group => group.PossibleItems.Any(item => item is { Group: 12, Number: 73 }))
+            .ToList();
+        var sphere5Groups = configuration.DropItemGroups
+            .Where(group => group.PossibleItems.Any(item => item is { Group: 12, Number: 74 }))
+            .ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sphere4.DropLevel, Is.EqualTo(142));
+            Assert.That(sphere4.DropsFromMonsters, Is.True);
+            Assert.That(sphere5.DropLevel, Is.EqualTo(145));
+            Assert.That(sphere5.DropsFromMonsters, Is.True);
+
+            Assert.That(sphere4Groups, Has.Count.EqualTo(1));
+            Assert.That(sphere4Groups[0].Chance, Is.EqualTo(0.02));
+            Assert.That(sphere4Groups[0].MinimumMonsterLevel, Is.EqualTo(142));
+            Assert.That(sphere4Groups[0].PossibleItems, Is.EquivalentTo(new[] { sphere4 }));
+
+            Assert.That(sphere5Groups, Has.Count.EqualTo(1));
+            Assert.That(sphere5Groups[0].Chance, Is.EqualTo(0.02));
+            Assert.That(sphere5Groups[0].MinimumMonsterLevel, Is.EqualTo(145));
+            Assert.That(sphere5Groups[0].PossibleItems, Is.EquivalentTo(new[] { sphere5 }));
+
+            Assert.That(
+                configuration.Maps.All(map => map.DropItemGroups.Count(group => group.PossibleItems.Any(item => item is { Group: 12, Number: 73 })) == 1),
+                Is.True);
+            Assert.That(
+                configuration.Maps.All(map => map.DropItemGroups.Count(group => group.PossibleItems.Any(item => item is { Group: 12, Number: 74 })) == 1),
+                Is.True);
+        });
+    }
+
+    /// <summary>
     /// Tests that the Lumen event-ticket update replaces her shop inventory idempotently.
     /// </summary>
     [Test]
