@@ -445,6 +445,7 @@ internal class SkillsInitializer : SkillsInitializerBase
         this.InitializeEffects();
         this.MapSkillsToEffects();
         this.InitializeMasterSkillData();
+        this.AddClientMasterSkillsAndDefinitions();
         this.CreateSpecialSummonMonsters();
         this.CreateSkillCombos();
         this.InitializeSkillAttributes();
@@ -951,6 +952,98 @@ internal class SkillsInitializer : SkillsInitializerBase
         this.AddPassiveMasterSkillDefinition(SkillNumber.RecoverManaMonsterKills, Stats.ManaAfterMonsterKillMultiplier, AggregateType.AddFinal, Formula4319, 5, 3, SkillNumber.RecoverHPfromMonsterKills);
     }
 
+    /// <summary>
+    /// Adds the master skill nodes which are present in the client master skill tree but were not initialized before.
+    /// </summary>
+    internal void AddClientMasterSkillsAndDefinitions()
+    {
+        this.EnsureMasterSkillRoots();
+
+        this.EnsurePassiveSkill(SkillNumber.IncreaseSetDefense, "Increase Set Defense", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.VengeanceFistMaster, "Vengeance", CharacterClasses.FistMaster, 1);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseEnergy, "Increase Energy", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseHp, "Increase HP", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseAgility, "Increase Agility", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseStrength, "Increase Strength", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.ReigningCloakDefenseIncrease, "Reigning Cloak Defense Increase", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.ReigningCloakAttackIncrease, "Reigning Cloak Attack Increase", CharacterClasses.FistMaster, 17);
+        this.EnsurePassiveSkill(SkillNumber.AddsCommandStat, "Adds Command Stat", CharacterClasses.LordEmperor, 17);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseMaximumAg, "Increase Maximum AG", CharacterClasses.FistMaster, 37);
+        this.EnsurePassiveSkill(SkillNumber.DarkSpiritStr4, "Dark Spirit Strengthener (4)", CharacterClasses.LordEmperor, 23);
+        this.EnsurePassiveSkill(SkillNumber.MaximumAttackPowerInc, "Maximum Attack Power Increase", CharacterClasses.LordEmperor, 3);
+        this.EnsurePassiveSkill(SkillNumber.DarkSpiritStr5, "Dark Spirit Strengthener (5)", CharacterClasses.LordEmperor, 1);
+        this.EnsurePassiveSkill(SkillNumber.SpiritLord, "Spirit Lord", CharacterClasses.LordEmperor, 1);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseMaximumAttackPower, "Increase Maximum Attack Power", CharacterClasses.FistMaster, 3);
+        this.EnsurePassiveSkill(SkillNumber.IncreasesCritDamageChance, "Increases Critical Damage Chance", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.RecoverManaFully, "Recover Mana Fully", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.RecoversHpFully, "Recovers HP Fully", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseExcDamageChance, "Increase Excellent Damage Chance", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseDoubleDamageChance, "Increase Double Damage Chance", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.IncreaseIgnoreDefChance, "Increase Ignore Def Chance", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.RecoversSdFully, "Recovers SD Fully", CharacterClasses.FistMaster, 38);
+        this.EnsurePassiveSkill(SkillNumber.RestoresallSd, "Restores Full SD", CharacterClasses.LordEmperor, 1);
+        this.EnsurePassiveSkill(SkillNumber.IncchanceofignoreDef, "Increase Ignore Defense Rate", CharacterClasses.LordEmperor, 1);
+
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseSetDefense, Stats.DefenseFinal, AggregateType.AddFinal, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.VengeanceFistMaster, Stats.FullyReflectDamageAfterHitChance, AggregateType.AddRaw, Formula120Value, 1, 1, SkillNumber.IncreaseSetDefense);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseEnergy, Stats.BaseEnergy, AggregateType.AddRaw, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseHp, Stats.BaseVitality, AggregateType.AddRaw, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseAgility, Stats.BaseAgility, AggregateType.AddRaw, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseStrength, Stats.BaseStrength, AggregateType.AddRaw, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.ReigningCloakDefenseIncrease, Stats.DefenseFinal, AggregateType.AddFinal, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.ReigningCloakAttackIncrease, Stats.MaximumPhysBaseDmg, AggregateType.AddRaw, Formula120, 1, 1, SkillNumber.ReigningCloakDefenseIncrease);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.AddsCommandStat, Stats.BaseLeadership, AggregateType.AddRaw, Formula120, 1, 1);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseMaximumAg, Stats.MaximumAbility, AggregateType.AddRaw, Formula120, 1, 2, SkillNumber.IncreaseMaximumMana);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.DarkSpiritStr4, Stats.RavenAttackSpeed, AggregateType.AddRaw, Formula120, 1, 3);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.MaximumAttackPowerInc, Stats.MaximumPhysBaseDmg, AggregateType.AddRaw, Formula502, 1, 3, SkillNumber.MinimumAttackPowerInc);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.DarkSpiritStr5, Stats.RavenAttackRate, AggregateType.AddRaw, Formula120Value, 1, 3, SkillNumber.DarkSpiritStr4);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.SpiritLord, Stats.RavenExcDamageChance, AggregateType.AddRaw, Formula120Value, 1, 3, SkillNumber.DarkSpiritStr5);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseMaximumAttackPower, Stats.MaximumPhysBaseDmg, AggregateType.AddRaw, Formula502, 1, 3, SkillNumber.IncreaseMinimumAttackPower);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreasesCritDamageChance, Stats.CriticalDamageChance, AggregateType.AddRaw, Formula120Value, 1, 3);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.RecoverManaFully, Stats.ManaAfterMonsterKillMultiplier, AggregateType.AddFinal, Formula120Value, 1, 3);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.RecoversHpFully, Stats.HealthAfterMonsterKillMultiplier, AggregateType.AddFinal, Formula120Value, 1, 3);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseExcDamageChance, Stats.ExcellentDamageChance, AggregateType.AddRaw, Formula120Value, 1, 3, SkillNumber.IncreasesCritDamageChance);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseDoubleDamageChance, Stats.DoubleDamageChance, AggregateType.AddRaw, Formula120Value, 1, 3);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.RecoversSdFully, Stats.ShieldAfterMonsterKillMultiplier, AggregateType.AddFinal, Formula120Value, 1, 3, SkillNumber.RecoversHpFully);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncreaseIgnoreDefChance, Stats.DefenseIgnoreChance, AggregateType.AddRaw, Formula120Value, 1, 3, SkillNumber.IncreaseDoubleDamageChance);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.RestoresallSd, Stats.ShieldAfterMonsterKillMultiplier, AggregateType.AddFinal, Formula120Value, 1, 3);
+        this.AddPassiveMasterSkillDefinition(SkillNumber.IncchanceofignoreDef, Stats.DefenseIgnoreChance, AggregateType.AddRaw, Formula120Value, 1, 3);
+    }
+
+    private void EnsurePassiveSkill(SkillNumber skillNumber, string name, CharacterClasses characterClasses, int damage)
+    {
+        if (this.GameConfiguration.Skills.Any(skill => skill.Number == (short)skillNumber))
+        {
+            return;
+        }
+
+        this.CreateSkill(skillNumber, name, characterClasses, damage: damage, skillType: SkillType.PassiveBoost);
+    }
+
+    private void EnsureMasterSkillRoots()
+    {
+        if (this._masterSkillRoots.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var root in this.GameConfiguration.MasterSkillRoots)
+        {
+            switch (root.Name.ValueInNeutralLanguage)
+            {
+                case "Left (Common Skills)":
+                    this._masterSkillRoots[1] = root;
+                    break;
+                case "Middle Root":
+                    this._masterSkillRoots[2] = root;
+                    break;
+                case "Right Root":
+                    this._masterSkillRoots[3] = root;
+                    break;
+            }
+        }
+    }
+
     private void AddPassiveMasterSkillDefinition(SkillNumber skillNumber, AttributeDefinition targetAttribute, AggregateType aggregateType, string valueFormula, string displayValueFormula, byte rank, byte root, SkillNumber requiredSkill1 = SkillNumber.Undefined, SkillNumber requiredSkill2 = SkillNumber.Undefined, byte maximumLevel = 20)
     {
         this.AddMasterSkillDefinition(skillNumber, requiredSkill1, requiredSkill2, root, rank, SkillNumber.Undefined, maximumLevel, valueFormula, displayValueFormula, targetAttribute, aggregateType);
@@ -969,36 +1062,38 @@ internal class SkillsInitializer : SkillsInitializerBase
     private void AddMasterSkillDefinition(SkillNumber skillNumber, SkillNumber requiredSkill1, SkillNumber requiredSkill2, byte root, byte rank, SkillNumber regularSkill, byte maximumLevel, string valueFormula, string displayValueFormula, AttributeDefinition? targetAttribute, AggregateType aggregateType, bool extendsDuration = false)
     {
         var skill = this.GameConfiguration.Skills.First(s => s.Number == (short)skillNumber);
-        skill.MasterDefinition = this.Context.CreateNew<MasterSkillDefinition>();
-        skill.MasterDefinition.Rank = rank;
-        skill.MasterDefinition.Root = this._masterSkillRoots[root];
-        skill.MasterDefinition.ValueFormula = valueFormula;
-        skill.MasterDefinition.DisplayValueFormula = displayValueFormula;
-        skill.MasterDefinition.MaximumLevel = maximumLevel;
-        skill.MasterDefinition.TargetAttribute = targetAttribute?.GetPersistent(this.GameConfiguration);
-        skill.MasterDefinition.Aggregation = aggregateType;
-        skill.MasterDefinition.ReplacedSkill = this.GameConfiguration.Skills.FirstOrDefault(s => s.Number == (short)regularSkill);
-        skill.MasterDefinition.ExtendsDuration = extendsDuration;
+        var masterDefinition = skill.MasterDefinition ?? this.Context.CreateNew<MasterSkillDefinition>();
+        skill.MasterDefinition = masterDefinition;
+        masterDefinition.RequiredMasterSkills.Clear();
+        masterDefinition.Rank = rank;
+        masterDefinition.Root = this._masterSkillRoots[root];
+        masterDefinition.ValueFormula = valueFormula;
+        masterDefinition.DisplayValueFormula = displayValueFormula;
+        masterDefinition.MaximumLevel = maximumLevel;
+        masterDefinition.TargetAttribute = targetAttribute?.GetPersistent(this.GameConfiguration);
+        masterDefinition.Aggregation = aggregateType;
+        masterDefinition.ReplacedSkill = this.GameConfiguration.Skills.FirstOrDefault(s => s.Number == (short)regularSkill);
+        masterDefinition.ExtendsDuration = extendsDuration;
         if (requiredSkill1 != SkillNumber.Undefined)
         {
-            skill.MasterDefinition.RequiredMasterSkills.Add(this.GameConfiguration.Skills.First(s => s.Number == (short)requiredSkill1));
+            masterDefinition.RequiredMasterSkills.Add(this.GameConfiguration.Skills.First(s => s.Number == (short)requiredSkill1));
         }
 
         if (requiredSkill2 != SkillNumber.Undefined)
         {
-            skill.MasterDefinition.RequiredMasterSkills.Add(this.GameConfiguration.Skills.First(s => s.Number == (short)requiredSkill2));
+            masterDefinition.RequiredMasterSkills.Add(this.GameConfiguration.Skills.First(s => s.Number == (short)requiredSkill2));
         }
 
         if (maximumLevel == 10 && valueFormula == Formula1WhenComplete)
         {
-            skill.MasterDefinition.MinimumLevel = maximumLevel;
+            masterDefinition.MinimumLevel = maximumLevel;
         }
         else
         {
-            skill.MasterDefinition.MinimumLevel = 1;
+            masterDefinition.MinimumLevel = 1;
         }
 
-        var replacedSkill = skill.MasterDefinition.ReplacedSkill;
+        var replacedSkill = masterDefinition.ReplacedSkill;
         if (replacedSkill != null)
         {
             // Because we don't want to duplicate code from the replaced skills to the master skills, we just assign some values from the replaced skill.

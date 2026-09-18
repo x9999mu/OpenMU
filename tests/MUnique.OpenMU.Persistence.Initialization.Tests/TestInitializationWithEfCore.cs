@@ -1514,6 +1514,45 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that the client master skill nodes are added idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestAddClientMasterSkillsUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var update = new AddClientMasterSkillsUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        short[] skillNumbers =
+        [
+            364, 371, 372, 506, 536, 538, 539,
+            549, 550, 593, 594, 595, 596, 597, 598,
+            602, 609, 610, 611, 612, 613, 614, 615, 616,
+        ];
+
+        Assert.Multiple(() =>
+        {
+            foreach (var skillNumber in skillNumbers)
+            {
+                var skills = configuration.Skills.Where(skill => skill.Number == skillNumber).ToList();
+                Assert.That(skills, Has.Count.EqualTo(1), $"Expected exactly one skill with number {skillNumber}.");
+                Assert.That(skills[0].MasterDefinition, Is.Not.Null, $"Expected a master definition for skill {skillNumber}.");
+            }
+
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 595).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.BaseEnergy));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 598).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.BaseStrength));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 610).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.CriticalDamageChance));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 616).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.ShieldAfterMonsterKillMultiplier));
+        });
+    }
+
+    /// <summary>
     /// Tests that the Lumen event-ticket update replaces her shop inventory idempotently.
     /// </summary>
     [Test]
