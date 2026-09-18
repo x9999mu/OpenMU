@@ -1525,7 +1525,7 @@ internal class TestInitializationWithEfCore
 
         using var context = contextProvider.CreateNewContext();
         var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
-        var update = new AddClientMasterSkillsUpdatePlugIn();
+        var update = new AddRemainingClientMasterSkillsUpdatePlugIn();
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
 
@@ -1534,6 +1534,9 @@ internal class TestInitializationWithEfCore
             364, 371, 372, 506, 536, 538, 539,
             549, 550, 593, 594, 595, 596, 597, 598,
             602, 609, 610, 611, 612, 613, 614, 615, 616,
+            315, 316, 317, 318, 319, 320, 322, 324, 341,
+            366, 367, 368, 369, 370, 375, 377, 407, 410,
+            412, 443, 446, 447, 473, 476, 478, 505, 507,
         ];
 
         Assert.Multiple(() =>
@@ -1545,10 +1548,15 @@ internal class TestInitializationWithEfCore
                 Assert.That(skills[0].MasterDefinition, Is.Not.Null, $"Expected a master definition for skill {skillNumber}.");
             }
 
-            Assert.That(configuration.Skills.Single(skill => skill.Number == 595).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.BaseEnergy));
-            Assert.That(configuration.Skills.Single(skill => skill.Number == 598).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.BaseStrength));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 595).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.TotalEnergy));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 598).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.TotalStrength));
             Assert.That(configuration.Skills.Single(skill => skill.Number == 610).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.CriticalDamageChance));
             Assert.That(configuration.Skills.Single(skill => skill.Number == 616).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.ShieldAfterMonsterKillMultiplier));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 315).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.DefenseFinal));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 317).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.TotalEnergy));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 320).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.TotalStrength));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 367).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.FullyRecoverManaAfterHitChance));
+            Assert.That(configuration.Skills.Single(skill => skill.Number == 443).MasterDefinition!.TargetAttribute, Is.EqualTo(Stats.MaximumPhysBaseDmg));
         });
     }
 

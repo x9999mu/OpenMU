@@ -5,8 +5,10 @@
 namespace MUnique.OpenMU.Tests;
 
 using Moq;
+using MUnique.OpenMU.AttributeSystem;
 using MUnique.OpenMU.DataModel.Configuration;
 using MUnique.OpenMU.GameLogic;
+using MUnique.OpenMU.GameLogic.Attributes;
 using MUnique.OpenMU.GameLogic.PlayerActions.Character;
 
 /// <summary>
@@ -62,6 +64,24 @@ public class MasterSystemTest
         this._player.SelectedCharacter!.MasterLevelUpPoints = 1;
         await this._addAction.AddMasterPointAsync(this._player, (ushort)this._skillIdRank1).ConfigureAwait(false);
         Assert.That(this._player.SelectedCharacter.LearnedSkills, Is.Not.Empty);
+    }
+
+    /// <summary>
+    /// Tests that spending a master skill point changes the target character attribute.
+    /// </summary>
+    [Test]
+    public async Task MasterSkillPointAffectsCharacterAttributeAsync()
+    {
+        this._skillRank1.MasterDefinition!.TargetAttribute = Stats.TotalStrength;
+        this._skillRank1.MasterDefinition!.ValueFormula = "1 * level";
+        this._skillRank1.MasterDefinition!.Aggregation = AggregateType.AddRaw;
+        this._skillRank1.SkillType = SkillType.PassiveBoost;
+        var before = this._player.Attributes![Stats.TotalStrength];
+
+        this._player.SelectedCharacter!.MasterLevelUpPoints = 1;
+        await this._addAction.AddMasterPointAsync(this._player, (ushort)this._skillIdRank1).ConfigureAwait(false);
+
+        Assert.That(this._player.Attributes[Stats.TotalStrength], Is.EqualTo(before + 1f).Within(0.001f));
     }
 
     /// <summary>

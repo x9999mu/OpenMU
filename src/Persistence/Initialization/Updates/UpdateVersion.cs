@@ -754,4 +754,9 @@ public enum UpdateVersion
     /// The version of the <see cref="FixAncientSeedExtractionMaterialAtRheaStoreUpdatePlugIn"/>.
     /// </summary>
     FixAncientSeedExtractionMaterialAtRheaStore = 149,
+
+    /// <summary>
+    /// The version of the <see cref="AddRemainingClientMasterSkillsUpdatePlugIn"/>.
+    /// </summary>
+    AddRemainingClientMasterSkills = 150,
 }
