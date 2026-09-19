@@ -346,6 +346,7 @@ internal static class InstantServerConfiguration
         ConfigureIcarusDifficulty(gameConfiguration);
         ConfigureBossDifficulty(gameConfiguration);
         ConfigureIcarusAndKalimaSevenJewelDrops(context, gameConfiguration);
+        ConfigureKalimaSevenBossDrops(context, gameConfiguration);
         ConfigureKalimaSevenBossDefenseRate(gameConfiguration);
     }
 
@@ -460,8 +461,7 @@ internal static class InstantServerConfiguration
     }
 
     /// <summary>
-    /// Configures the Gemstone, Jewel of Harmony and Jewel of Guardian drops of Icarus and Kalima 7,
-    /// and the guaranteed loot of the Illusion of Kundun 7.
+    /// Configures the Gemstone, Jewel of Harmony and Jewel of Guardian drops of Icarus and Kalima 7.
     /// </summary>
     /// <param name="context">The persistence context.</param>
     /// <param name="gameConfiguration">The game configuration.</param>
@@ -476,13 +476,11 @@ internal static class InstantServerConfiguration
         var harmony = GetItemDefinition(gameConfiguration, 14, 42);
         var guardian = GetItemDefinition(gameConfiguration, 14, 31);
         var kundunBox = GetItemDefinition(gameConfiguration, 14, 11);
-        var gmGift = GetItemDefinition(gameConfiguration, 14, 52);
 
         var icarus = gameConfiguration.Maps.Single(map => map is { Number: 10, Discriminator: 0 });
         var kalima7 = gameConfiguration.Maps.Single(map => map is { Number: 36, Discriminator: 0 });
         var moneyGroup = gameConfiguration.DropItemGroups.Single(group => group.GetId() == GuidHelper.CreateGuid<DropItemGroup>(1));
         var jewelGroup = gameConfiguration.DropItemGroups.Single(group => group.GetId() == GuidHelper.CreateGuid<DropItemGroup>(4));
-        var kundun = gameConfiguration.Monsters.Single(monster => monster.Number == 275);
 
         // Retire the obsolete map-level jewel groups (created by the map initializers and by update v137).
         RemoveDropGroup(gameConfiguration, icarus, GuidHelper.CreateGuid<DropItemGroup>((short)10, (short)3));
@@ -491,7 +489,7 @@ internal static class InstantServerConfiguration
         RemoveDropGroup(gameConfiguration, kalima7, GuidHelper.CreateGuid<DropItemGroup>((short)36, (short)2));
 
         // Kalima 7 drops come from the monsters only. Without this, the guaranteed money group would consume
-        // the single drop slot of the regular monsters and one of the twelve slots of Kundun.
+        // the single drop slot of the regular monsters and one of the drop slots of Kundun 7.
         kalima7.DropItemGroups.Remove(moneyGroup);
 
         // The shared box groups of the Kalima 7 regular monsters keep their current effective chance.
@@ -548,51 +546,77 @@ internal static class InstantServerConfiguration
                 ConfigureJewelGroup(context, gameConfiguration, monster, gemstone, gemstoneChance, 0),
                 ConfigureJewelGroup(context, gameConfiguration, monster, harmony, harmonyChance, 1));
         }
+    }
 
-        // The Illusion of Kundun 7 drops three GM Gifts, six Jewels of Harmony and three Jewels of Guardian.
-        var obsoleteKundunIds = Enumerable.Range(11, 6)  // Box of Kundun +4 #1..#6
-            .Concat(Enumerable.Range(21, 6))             // Box of Kundun +5 #1..#6
-            .Concat(Enumerable.Range(34, 3))             // GM Gift #4..#6
-            .Select(value => GuidHelper.CreateGuid<DropItemGroup>(9_999, kundun.Number, (byte)value))
-            .ToList();
-        foreach (var obsolete in obsoleteKundunIds.SelectMany(id => gameConfiguration.DropItemGroups.Where(group => group.GetId() == id)).ToList())
-        {
-            obsolete.Monster?.DropItemGroups.Remove(obsolete);
-            gameConfiguration.DropItemGroups.Remove(obsolete);
-        }
-
-        // The generic boss gacha groups stay available for the other bosses, but not for Kundun.
-        foreach (var gachaId in new short[] { 4, 5, 6 }.Select(number => GuidHelper.CreateGuid<DropItemGroup>(9_999, number)))
-        {
-            var gachaGroup = gameConfiguration.DropItemGroups.FirstOrDefault(group => group.GetId() == gachaId);
-            if (gachaGroup is not null)
-            {
-                kundun.DropItemGroups.Remove(gachaGroup);
-            }
-        }
-
+    /// <summary>
+    /// Configures the loot of the Illusion of Kundun 7: three GM Gifts, three Box of Kundun +5, one Jewel
+    /// of Harmony, one Jewel of Guardian and one random full-option item.
+    /// </summary>
+    /// <param name="context">The persistence context.</param>
+    /// <param name="gameConfiguration">The game configuration.</param>
+    /// <remarks>
+    /// Every group is guaranteed and consumes exactly one item drop slot of the boss, so the number of
+    /// groups has to match <see cref="MonsterDefinition.NumberOfMaximumItemDrops"/>.
+    /// </remarks>
+    internal static void ConfigureKalimaSevenBossDrops(IContext context, GameConfiguration gameConfiguration)
+    {
+        var boss = gameConfiguration.Monsters.Single(monster => monster.Number == 275);
+        var kundunBox = GetItemDefinition(gameConfiguration, 14, 11);
+        var gmGift = GetItemDefinition(gameConfiguration, 14, 52);
+        var drops = new List<(Guid Id, string Description, ItemDefinition Item, SpecialItemType ItemType, byte? ItemLevel)>();
         for (var copy = 0; copy < 3; copy++)
         {
-            var gift = EnsureDropGroup(context, gameConfiguration, GuidHelper.CreateGuid<DropItemGroup>(9_999, kundun.Number, (byte)(31 + copy)));
-            ConfigureGuaranteedGroup(gift, $"{kundun.Designation}: GM Gift #{copy + 1}", gmGift, kundun, SpecialItemType.RandomItem, 0);
-            AttachGroups(kundun, gift);
+            drops.Add((GuidHelper.CreateGuid<DropItemGroup>(9_999, boss.Number, (byte)(31 + copy)), $"{boss.Designation}: GM Gift #{copy + 1}", gmGift, SpecialItemType.RandomItem, 0));
+            drops.Add((GuidHelper.CreateGuid<DropItemGroup>(9_999, boss.Number, (byte)(41 + copy)), $"{boss.Designation}: Box of Kundun +5 #{copy + 1}", kundunBox, SpecialItemType.RandomItem, 12));
         }
 
-        for (var copy = 0; copy < 6; copy++)
+        drops.Add((GuidHelper.CreateGuid<DropItemGroup>(boss.Number, 10), $"{boss.Designation}: Jewel of Harmony", GetItemDefinition(gameConfiguration, 14, 42), SpecialItemType.Jewel, null));
+        drops.Add((GuidHelper.CreateGuid<DropItemGroup>(boss.Number, 20), $"{boss.Designation}: Jewel of Guardian", GetItemDefinition(gameConfiguration, 14, 31), SpecialItemType.Jewel, null));
+
+        var fullOptionId = GuidHelper.CreateGuid<DropItemGroup>(9_999, boss.Number, 51);
+        var keptIds = drops.Select(drop => drop.Id).Append(fullOptionId).ToHashSet();
+        foreach (var obsolete in boss.DropItemGroups.Where(group => !keptIds.Contains(group.GetId())).ToList())
         {
-            var jewel = EnsureDropGroup(context, gameConfiguration, GuidHelper.CreateGuid<DropItemGroup>(kundun.Number, (short)(10 + copy)));
-            ConfigureGuaranteedGroup(jewel, $"{kundun.Designation}: Jewel of Harmony #{copy + 1}", harmony, kundun, SpecialItemType.Jewel, null);
-            AttachGroups(kundun, jewel);
+            DetachDropGroup(gameConfiguration, boss, obsolete);
         }
 
-        for (var copy = 0; copy < 3; copy++)
+        foreach (var (id, description, item, itemType, itemLevel) in drops)
         {
-            var jewel = EnsureDropGroup(context, gameConfiguration, GuidHelper.CreateGuid<DropItemGroup>(kundun.Number, (short)(20 + copy)));
-            ConfigureGuaranteedGroup(jewel, $"{kundun.Designation}: Jewel of Guardian #{copy + 1}", guardian, kundun, SpecialItemType.Jewel, null);
-            AttachGroups(kundun, jewel);
+            var group = EnsureDropGroup(context, gameConfiguration, id);
+            ConfigureGuaranteedGroup(group, description, item, boss, itemType, itemLevel);
+            AttachGroups(boss, group);
         }
 
-        kundun.NumberOfMaximumItemDrops = 12;
+        var fullOption = EnsureDropGroup(context, gameConfiguration, fullOptionId);
+        fullOption.Description = $"{boss.Designation}: random full-option item";
+        fullOption.Chance = 1.0;
+        fullOption.ItemType = SpecialItemType.FullExcellent;
+        fullOption.ItemLevel = 9;
+        fullOption.MinimumMonsterLevel = null;
+        fullOption.MaximumMonsterLevel = null;
+        fullOption.Monster = boss;
+        ReplaceEquipmentPool(gameConfiguration, fullOption, KundunFiveDirectItems, GmGiftArmorSets);
+        AttachGroups(boss, fullOption);
+
+        boss.NumberOfMaximumItemDrops = drops.Count + 1;
+    }
+
+    /// <summary>
+    /// Detaches a drop item group from a monster and unregisters it, if nothing else references it.
+    /// </summary>
+    /// <param name="gameConfiguration">The game configuration.</param>
+    /// <param name="monster">The monster which currently drops the group.</param>
+    /// <param name="group">The drop item group.</param>
+    private static void DetachDropGroup(GameConfiguration gameConfiguration, MonsterDefinition monster, DropItemGroup group)
+    {
+        monster.DropItemGroups.Remove(group);
+        var isReferenced = gameConfiguration.Monsters.Any(other => other.DropItemGroups.Contains(group))
+                           || gameConfiguration.Maps.Any(map => map.DropItemGroups.Contains(group))
+                           || gameConfiguration.Items.Any(item => item.DropItems.Contains(group));
+        if (!isReferenced)
+        {
+            gameConfiguration.DropItemGroups.Remove(group);
+        }
     }
 
     /// <summary>

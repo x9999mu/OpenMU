@@ -173,7 +173,7 @@ internal class TestInitializationWithEfCore
             Assert.That(icarusSpawns.All(spawn => spawn.Quantity == 3), Is.True);
             Assert.That(monsters.Where(monster => monster.Number != 275 && monster.Number is < 331 or > 337).All(monster => monster.NumberOfMaximumItemDrops == 2 && monster.RespawnDelay <= TimeSpan.FromSeconds(5)), Is.True);
             Assert.That(monsters.Where(monster => monster.Number is >= 331 and <= 337).All(monster => monster.NumberOfMaximumItemDrops == 1), Is.True);
-            Assert.That(monsters.Single(monster => monster.Number == 275).NumberOfMaximumItemDrops, Is.EqualTo(12));
+            Assert.That(monsters.Single(monster => monster.Number == 275).NumberOfMaximumItemDrops, Is.EqualTo(9));
             Assert.That(monsters.Single(monster => monster.Number == 275)[Stats.DefenseRatePvm], Is.EqualTo(10_000));
             Assert.That(configuration.MiniGameDefinitions.All(miniGame => miniGame.ArePlayerKillersAllowedToEnter), Is.True);
         });
@@ -358,7 +358,15 @@ internal class TestInitializationWithEfCore
             .ToList();
         Assert.That(gachaGroups.Select(group => group.Chance), Is.EqualTo(new[] { 0.02, 0.015, 0.01, 0.475, 0.475, 0.05 }));
         Assert.That(gachaGroups.All(group => group.PossibleItems.Count == 1), Is.True);
-        Assert.That(configuration.DropItemGroups.Where(group => group.Monster is not null && group.ItemLevel is >= 8 and <= 12 && group.PossibleItems.Count == 1 && group.PossibleItems.Single() == kundunBox), Is.Empty);
+        // The Illusion of Kundun 7 legitimately drops Box of Kundun +5 groups, which are asserted by
+        // AssertIcarusAndKalimaSevenJewelDrops; every other monster must not carry such a legacy group.
+        Assert.That(
+            configuration.DropItemGroups.Where(group => group.Monster is not null
+                                                        && group.Monster.Number != 275
+                                                        && group.ItemLevel is >= 8 and <= 12
+                                                        && group.PossibleItems.Count == 1
+                                                        && group.PossibleItems.Single() == kundunBox),
+            Is.Empty);
 
         var bossNumbers = new HashSet<short> { 43, 44, 53, 54, 78, 79, 80, 81, 82, 83, 135, 161, 181, 189, 197, 267, 275, 295, 338, 361, 362, 363, 364, 440, 459 };
 
@@ -819,6 +827,39 @@ internal class TestInitializationWithEfCore
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
 
         Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount), "the second application must not add groups");
+
+        // The Kundun 7 loot moved to its own update, which runs after this one.
+        var bossUpdate = new ConfigureKalimaSevenBossDropsUpdatePlugIn();
+        await bossUpdate.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var bossDropGroupCount = configuration.DropItemGroups.Count;
+        await bossUpdate.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(bossDropGroupCount), "the second application must not add groups");
+        AssertIcarusAndKalimaSevenJewelDrops(configuration);
+    }
+
+    /// <summary>
+    /// Tests that the Kalima 7 boss drop update repairs the loot of the Illusion of Kundun 7 idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestConfigureKalimaSevenBossDropsUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var kundunSeven = configuration.Monsters.Single(monster => monster.Number == 275);
+        kundunSeven.NumberOfMaximumItemDrops = 2;
+        kundunSeven.DropItemGroups.Clear();
+
+        var update = new ConfigureKalimaSevenBossDropsUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var dropGroupCount = configuration.DropItemGroups.Count;
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount), "the second application must not add groups");
         AssertIcarusAndKalimaSevenJewelDrops(configuration);
     }
 
@@ -933,18 +974,25 @@ internal class TestInitializationWithEfCore
             .Select(value => DropGroupId(9_999, kundun7.Number, (byte)value))
             .ToList();
         var gachaBossDropGroupIds = new short[] { 4, 5, 6 }.Select(number => DropGroupId(9_999, number)).ToList();
+        var fullOptionItem = kundunDropGroups.Single(group => group.ItemType == SpecialItemType.FullExcellent);
+        var jackpotOpening = gmGift.DropItems.Single(group => group.GetId() == new Guid(0x201, 14, 52, 0, 0, 0, 0, 0, 0, 0, 0));
         Assert.Multiple(() =>
         {
-            Assert.That(kundun7.NumberOfMaximumItemDrops, Is.EqualTo(12), "Kundun 7: max drops");
-            Assert.That(kundunDropGroups, Has.Count.EqualTo(12), "Kundun 7: guaranteed drops");
+            Assert.That(kundun7.NumberOfMaximumItemDrops, Is.EqualTo(9), "Kundun 7: max drops");
+            Assert.That(kundunDropGroups, Has.Count.EqualTo(9), "Kundun 7: guaranteed drops");
             Assert.That(kundunDropGroups, Is.All.Matches<DropItemGroup>(group => group is { Chance: 1.0 } && group.Monster == kundun7), "Kundun 7: guaranteed groups");
             Assert.That(configuration.DropItemGroups.Where(group => retiredKundunDropGroupIds.Contains(group.GetId())), Is.Empty, "Kundun 7: retired box groups");
             Assert.That(kundunDropGroups.Where(group => gachaBossDropGroupIds.Contains(group.GetId())), Is.Empty, "Kundun 7: boss gacha groups");
-            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Single() == gmGift), Is.EqualTo(3), "Kundun 7: GM Gifts");
-            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Single() == harmony), Is.EqualTo(6), "Kundun 7: Jewels of Harmony");
-            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Single() == guardian), Is.EqualTo(3), "Kundun 7: Jewels of Guardian");
-            Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Single() == gmGift), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.RandomItem, ItemLevel: 0 }), "Kundun 7: GM Gift groups");
-            Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Single() != gmGift), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.Jewel, ItemLevel: null }), "Kundun 7: jewel groups");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == gmGift), Is.EqualTo(3), "Kundun 7: GM Gifts");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == kundunBox), Is.EqualTo(3), "Kundun 7: Box of Kundun +5");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == harmony), Is.EqualTo(1), "Kundun 7: Jewel of Harmony");
+            Assert.That(kundunDropGroups.Count(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == guardian), Is.EqualTo(1), "Kundun 7: Jewel of Guardian");
+            Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == gmGift), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.RandomItem, ItemLevel: 0 }), "Kundun 7: GM Gift groups");
+            Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == kundunBox), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.RandomItem, ItemLevel: 12 }), "Kundun 7: box groups");
+            Assert.That(kundunDropGroups.Where(group => group.ItemType == SpecialItemType.Jewel), Is.All.Matches<DropItemGroup>(group => group is { ItemLevel: null }), "Kundun 7: jewel levels");
+            Assert.That(fullOptionItem.ItemType, Is.EqualTo(SpecialItemType.FullExcellent), "Kundun 7: full-option item type");
+            Assert.That(fullOptionItem.ItemLevel, Is.EqualTo(9), "Kundun 7: full-option item level");
+            Assert.That(fullOptionItem.PossibleItems, Is.EquivalentTo(jackpotOpening.PossibleItems), "Kundun 7: full-option pool");
         });
     }
 

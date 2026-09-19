@@ -254,6 +254,20 @@ Mỗi boss hợp lệ có một lượt gacha với tổng xác suất 100%:
 
 Các boss áp dụng gồm nhóm Golden Monster, Red Dragon, White Wizard, Illusion of Kundun, Erohim, Nightmare, Maya và hai tay Maya, Dark Elf và Selupan. Hộ vệ của White Wizard không được tính là boss. Golden → Red Dragon → White Wizard chạy luân phiên, đổi event mỗi 10 phút; hãy theo thông báo trong game để tìm đúng map.
 
+### Boss Kalima 7: Illusion of Kundun 7
+
+Illusion of Kundun 7 (map **Kalima 7**) không dùng bảng gacha chung ở trên. Mỗi lần hạ boss luôn rơi đủ **9 món** (boss hồi sinh sau 3 giờ):
+
+| Phần thưởng | Số lượng |
+| --- | ---: |
+| GM Gift Full Option | 3 |
+| Box of Kundun +5 | 3 |
+| Jewel of Harmony | 1 |
+| Jewel of Guardian | 1 |
+| Trang bị full option ngẫu nhiên (+9, mọi dòng Excellent) | 1 |
+
+Món full option ngẫu nhiên dùng chung pool với GM Gift (vũ khí và set giáp gần end-game). Boss không rơi Zen, không rơi Box +4 và không rơi Jewel of Bless/Soul/Chaos.
+
 ### Ép Box of Kundun (Nâng cấp)
 
 Bạn có thể ghép 10 Box of Kundun cấp thấp thành 1 Box cấp cao hơn tại **Chaos Goblin** thông qua chức năng **Regular Combination** (Kết hợp bình thường). Yêu cầu thêm 1 Jewel of Chaos cho mỗi lần ép. Nếu thất bại, toàn bộ nguyên liệu sẽ biến mất.
