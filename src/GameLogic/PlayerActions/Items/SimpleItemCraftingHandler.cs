@@ -34,10 +34,22 @@ public class SimpleItemCraftingHandler : BaseItemCraftingHandler
         long totalCraftingPrice = 0;
         items = new List<CraftingRequiredItemLink>(this._settings.RequiredItems.Count);
         var storage = player.TemporaryStorage?.Items.ToList() ?? new List<Item>();
-        foreach (var requiredItem in this._settings.RequiredItems.OrderByDescending(i => i.MinimumAmount))
+        var requirements = this._settings.RequiredItems
+            .OrderByDescending(i => i.MinimumAmount)
+            .ThenBy(i => storage.Count(item => this.RequiredItemMatches(item, i)))
+            .ToList();
+        for (var index = 0; index < requirements.Count; index++)
         {
-            var foundItems = storage.Where(item => this.RequiredItemMatches(item, requiredItem)).ToList();
-            var itemCount = foundItems.Sum(i => i.IsStackable() ? i.Durability : 1);
+            var requiredItem = requirements[index];
+            var matchingItems = storage.Where(item => this.RequiredItemMatches(item, requiredItem)).ToList();
+            var itemCount = matchingItems.Sum(i => i.IsStackable() ? i.Durability : 1);
+            var foundItems = requiredItem.MaximumAmount == 1 && itemCount > 1 && matchingItems.All(item => !item.IsStackable())
+                ? matchingItems
+                    .OrderBy(item => requirements.Skip(index + 1).Any(remaining => this.RequiredItemMatches(item, remaining)))
+                    .Take(1)
+                    .ToList()
+                : matchingItems;
+            itemCount = foundItems.Sum(i => i.IsStackable() ? i.Durability : 1);
             if (itemCount < requiredItem.MinimumAmount)
             {
                 player.Logger.LogWarning("LackingMixItems: Suspicious action for player with name: {0}, could be hack attempt. Missing item(s): {1}", player.Name, requiredItem);
@@ -100,13 +112,16 @@ public class SimpleItemCraftingHandler : BaseItemCraftingHandler
             items.Add(new CraftingRequiredItemLink(foundItems, requiredItem));
         }
 
-        // The list of unprocessed items must be empty now; otherwise, something is wrong.
         if (storage.Any())
         {
+            var result = storage.Any(item => requirements.Any(requiredItem => this.RequiredItemMatches(item, requiredItem)))
+                ? CraftingResult.TooManyItems
+                : CraftingResult.IncorrectMixItems;
             player.Logger.LogWarning(
-                "IncorrectMixItems: These items in the craft box don't match any requirement of the crafting: {0}",
+                "{0}: These items in the craft box don't match any available requirement of the crafting: {1}",
+                result,
                 string.Join(", ", storage.Select(i => i.ToString())));
-            return CraftingResult.IncorrectMixItems;
+            return result;
         }
 
         if (totalCraftingPrice > 0)

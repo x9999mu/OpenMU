@@ -10,6 +10,8 @@ using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.GameLogic.Attributes;
 using MUnique.OpenMU.GameLogic.PlayerActions.Craftings;
 using MUnique.OpenMU.Interfaces;
+using MUnique.OpenMU.DataModel.Configuration.ItemCrafting;
+using MUnique.OpenMU.GameLogic.PlayerActions.Items;
 
 /// <summary>
 /// Tests the instant-server Chaos Machine handlers with runtime-calculated rates.
@@ -79,6 +81,48 @@ public class InstantServerCraftingTests
         });
     }
 
+    /// <summary>
+    /// Overlapping crafting requirements consume distinct items.
+    /// </summary>
+    [Test]
+    public async Task OverlappingCraftingRequirementsConsumeDistinctItemsAsync()
+    {
+        var player = await PlayerTestHelper.CreatePlayerAsync().ConfigureAwait(false);
+        var excellentOptionType = player.PersistenceContext.CreateNew<ItemOptionType>();
+        var ancientBonusOptionType = player.PersistenceContext.CreateNew<ItemOptionType>();
+        var settings = player.PersistenceContext.CreateNew<SimpleCraftingSettings>();
+        var excellentRequirement = player.PersistenceContext.CreateNew<ItemCraftingRequiredItem>();
+        excellentRequirement.MinimumAmount = 1;
+        excellentRequirement.MaximumAmount = 1;
+        excellentRequirement.MinimumItemLevel = 4;
+        excellentRequirement.MaximumItemLevel = 15;
+        excellentRequirement.RequiredItemOptions.Add(excellentOptionType);
+        settings.RequiredItems.Add(excellentRequirement);
+        var ancientRequirement = player.PersistenceContext.CreateNew<ItemCraftingRequiredItem>();
+        ancientRequirement.MinimumAmount = 1;
+        ancientRequirement.MaximumAmount = 1;
+        ancientRequirement.MinimumItemLevel = 4;
+        ancientRequirement.MaximumItemLevel = 15;
+        ancientRequirement.RequiredItemOptions.Add(ancientBonusOptionType);
+        settings.RequiredItems.Add(ancientRequirement);
+
+        var fullAncientItem = await AddCraftingItemAsync(player, 4, excellentOptionType, ancientBonusOptionType).ConfigureAwait(false);
+        var secondAncientItem = await AddCraftingItemAsync(player, 4, excellentOptionType, ancientBonusOptionType).ConfigureAwait(false);
+
+
+        var result = new SimpleItemCraftingHandler(settings).TryGetRequiredItems(player, out var items, out _);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.Null);
+            var ancientLink = items.Single(link => link.ItemRequirement == ancientRequirement);
+            var excellentLink = items.Single(link => link.ItemRequirement == excellentRequirement);
+            Assert.That(ancientLink.Items.Single(), Is.Not.SameAs(excellentLink.Items.Single()));
+            Assert.That(new[] { fullAncientItem, secondAncientItem }, Does.Contain(ancientLink.Items.Single()));
+            Assert.That(new[] { fullAncientItem, secondAncientItem }, Does.Contain(excellentLink.Items.Single()));
+        });
+    }
+
     private static IEnumerable<TestCaseData> EventTicketCases()
     {
         foreach (var level in new byte[] { 1, 7 })
@@ -99,6 +143,28 @@ public class InstantServerCraftingTests
         item.Definition = definition;
         item.Level = level;
         item.Durability = 1;
+        Assert.That(await player.TemporaryStorage!.AddItemAsync(item).ConfigureAwait(false), Is.True);
+        return item;
+    }
+
+    private static async ValueTask<Item> AddCraftingItemAsync(Player player, byte level, params ItemOptionType[] optionTypes)
+    {
+        var definition = player.PersistenceContext.CreateNew<ItemDefinition>();
+        definition.Width = 1;
+        definition.Height = 1;
+        var item = player.PersistenceContext.CreateNew<Item>();
+        item.Definition = definition;
+        item.Level = level;
+        item.Durability = 1;
+        foreach (var optionType in optionTypes)
+        {
+            var option = player.PersistenceContext.CreateNew<IncreasableItemOption>();
+            option.OptionType = optionType;
+            var optionLink = player.PersistenceContext.CreateNew<ItemOptionLink>();
+            optionLink.ItemOption = option;
+            item.ItemOptions.Add(optionLink);
+        }
+
         Assert.That(await player.TemporaryStorage!.AddItemAsync(item).ConfigureAwait(false), Is.True);
         return item;
     }
