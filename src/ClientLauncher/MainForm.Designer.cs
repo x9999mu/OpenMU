@@ -195,9 +195,9 @@
             // 
             _statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             _statusLabel.AutoEllipsis = true;
-            _statusLabel.Location = new System.Drawing.Point(404, 88);
+            _statusLabel.Location = new System.Drawing.Point(107, 116);
             _statusLabel.Name = "_statusLabel";
-            _statusLabel.Size = new System.Drawing.Size(247, 20);
+            _statusLabel.Size = new System.Drawing.Size(551, 20);
             _statusLabel.TabIndex = 11;
             _statusLabel.Text = "Ready.";
             // 
@@ -205,7 +205,7 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(665, 121);
+            ClientSize = new System.Drawing.Size(665, 146);
             Controls.Add(_statusLabel);
             Controls.Add(_cleanInstallButton);
             Controls.Add(_updateButton);
@@ -222,7 +222,7 @@
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             MaximizeBox = false;
-            MaximumSize = new System.Drawing.Size(1257, 160);
+            MaximumSize = new System.Drawing.Size(1257, 185);
             Name = "MainForm";
             Text = "MU Game Client Launcher";
             ResumeLayout(false);
