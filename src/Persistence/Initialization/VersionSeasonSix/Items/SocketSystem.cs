@@ -306,8 +306,8 @@ public class SocketSystem : InitializerBase
 
         definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Ice, Stats.HealthAfterMonsterKillMultiplier, AggregateType.AddRaw, 1f / 8f, 1f / 7f, 1f / 6f, 1f / 5f, 1f / 4f));
         definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Ice, Stats.ManaAfterMonsterKillMultiplier, AggregateType.AddRaw, 1f / 8f, 1f / 7f, 1f / 6f, 1f / 5f, 1f / 4f));
-        definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Ice, Stats.SkillDamageBonus, AggregateType.AddRaw, 37, 40, 45, 50, 60));
-        definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Ice, Stats.AttackRatePvm, AggregateType.AddRaw, 25, 27, 30, 35, 40));
+        definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Ice, Stats.SkillDamageBonus, AggregateType.AddRaw, 925, 1000, 1125, 1250, 1500));
+        definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Ice, Stats.AttackRatePvm, AggregateType.AddRaw, 625, 675, 750, 875, 1000));
         definition.PossibleOptions.Add(this.CreateSocketOption(4, SocketSubOptionType.Ice, Stats.ItemDurationIncrease, AggregateType.Multiplicate, 1.30f, 1.32f, 1.34f, 1.36f, 1.38f));
         return definition;
     }
@@ -320,7 +320,7 @@ public class SocketSystem : InitializerBase
         definition.Name = "Socket Options (Lightning)";
         definition.MaximumOptionsPerItem = 1;
 
-        definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Lightning, Stats.ExcellentDamageBonus, AggregateType.AddRaw, 15, 20, 25, 30, 40));
+        definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Lightning, Stats.ExcellentDamageBonus, AggregateType.AddRaw, 375, 500, 625, 750, 1000));
         definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Lightning, Stats.ExcellentDamageChance, AggregateType.AddRaw, 0.10f, 0.11f, 0.12f, 0.13f, 0.14f));
         // The critical damage bonus is added as flat damage on critical hits, so the original
         // values were negligible compared to the damage of this server. The client displays the
@@ -339,12 +339,12 @@ public class SocketSystem : InitializerBase
         definition.Name = "Socket Options (Wind)";
         definition.MaximumOptionsPerItem = 1;
 
-        definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Wind, Stats.HealthRecoveryAbsolute, AggregateType.AddRaw, 8, 10, 13, 16, 20));
+        definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Wind, Stats.HealthRecoveryAbsolute, AggregateType.AddRaw, 200, 250, 325, 400, 500));
         definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Wind, Stats.MaximumHealth, AggregateType.Multiplicate, 1.04f, 1.05f, 1.06f, 1.07f, 1.08f));
         definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Wind, Stats.MaximumMana, AggregateType.Multiplicate, 1.04f, 1.05f, 1.06f, 1.07f, 1.08f));
-        definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Wind, Stats.ManaRecoveryAbsolute, AggregateType.AddRaw, 7, 14, 21, 28, 35));
-        definition.PossibleOptions.Add(this.CreateSocketOption(4, SocketSubOptionType.Wind, Stats.MaximumAbility, AggregateType.AddRaw, 25, 30, 35, 40, 50));
-        definition.PossibleOptions.Add(this.CreateSocketOption(5, SocketSubOptionType.Wind, Stats.AbilityRecoveryAbsolute, AggregateType.AddRaw, 3, 5, 7, 10, 15));
+        definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Wind, Stats.ManaRecoveryAbsolute, AggregateType.AddRaw, 175, 350, 525, 700, 875));
+        definition.PossibleOptions.Add(this.CreateSocketOption(4, SocketSubOptionType.Wind, Stats.MaximumAbility, AggregateType.AddRaw, 625, 750, 875, 1000, 1250));
+        definition.PossibleOptions.Add(this.CreateSocketOption(5, SocketSubOptionType.Wind, Stats.AbilityRecoveryAbsolute, AggregateType.AddRaw, 75, 125, 175, 250, 375));
         return definition;
     }
 
@@ -357,7 +357,7 @@ public class SocketSystem : InitializerBase
         definition.MaximumOptionsPerItem = 1;
 
         definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Water, Stats.DefenseRatePvm, AggregateType.Multiplicate, 1.10f, 1.11f, 1.12f, 1.13f, 1.14f));
-        definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Water, Stats.DefenseFinal, AggregateType.AddRaw, 30, 33, 36, 39, 42));
+        definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Water, Stats.DefenseFinal, AggregateType.AddRaw, 750, 825, 900, 975, 1050));
         definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Water, Stats.ShieldItemDefenseIncrease, AggregateType.AddRaw, 0.07f, 0.10f, 0.15f, 0.20f, 0.30f));
         definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Water, Stats.ArmorDamageDecrease, AggregateType.AddRaw, 0.04f, 0.05f, 0.06f, 0.07f, 0.08f));
         definition.PossibleOptions.Add(this.CreateSocketOption(4, SocketSubOptionType.Water, Stats.DamageReflection, AggregateType.AddRaw, 0.05f, 0.06f, 0.07f, 0.08f, 0.09f));
@@ -372,7 +372,7 @@ public class SocketSystem : InitializerBase
         definition.Name = "Socket Options (Earth)";
         definition.MaximumOptionsPerItem = 1;
 
-        definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Earth, Stats.MaximumHealth, AggregateType.AddRaw, 30, 32, 34, 36, 38));
+        definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Earth, Stats.MaximumHealth, AggregateType.AddRaw, 750, 800, 850, 900, 950));
         return definition;
     }
 

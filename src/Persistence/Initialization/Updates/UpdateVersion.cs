@@ -819,4 +819,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureFireSocketOptionsUpdatePlugIn"/>.
     /// </summary>
     ConfigureFireSocketOptions = 162,
+
+    /// <summary>
+    /// The version of the <see cref="ConfigureRemainingSocketOptionsUpdatePlugIn"/>.
+    /// </summary>
+    ConfigureRemainingSocketOptions = 163,
 }
