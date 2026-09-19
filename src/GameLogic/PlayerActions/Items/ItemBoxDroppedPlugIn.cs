@@ -36,14 +36,14 @@ public sealed class ItemBoxDroppedPlugIn : IItemDropPlugIn
         }
 
         cancelArgs.Success = true;
-        var (item, droppedMoneyAmount, dropEffect) = player.GameContext.DropGenerator.GenerateItemDrop(itemDropGroups);
+        var (items, droppedMoneyAmount, dropEffect) = player.GameContext.DropGenerator.GenerateItemDrops(itemDropGroups);
         if (droppedMoneyAmount is not null)
         {
             var droppedMoney = new DroppedMoney(droppedMoneyAmount.Value, player.Position, player.CurrentMap!);
             await player.CurrentMap!.AddAsync(droppedMoney).ConfigureAwait(false);
         }
 
-        if (item is not null)
+        foreach (var item in items)
         {
             var droppedItem = new DroppedItem(item, player.Position, player.CurrentMap!, player);
             await player.CurrentMap!.AddAsync(droppedItem).ConfigureAwait(false);

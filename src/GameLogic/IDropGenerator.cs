@@ -30,7 +30,13 @@ public interface IDropGenerator
     /// <summary>
     /// Generates an item based on a <see cref="DropItemGroup"/>s.
     /// </summary>
-    /// <param name="groups">The <see cref="DropItemGroup"/>s which define which item should be generated.</param>
+    /// <param name="groups">The <see cref="DropItemGroup"/>s which define the possible result.</param>
     /// <returns>The generated item, money and drop effect of the selected group.</returns>
     (Item? Item, uint? Money, ItemDropEffect DropEffect) GenerateItemDrop(IEnumerable<DropItemGroup> groups);
+    /// <summary>
+    /// Generates one or more items based on a set of possible drop groups.
+    /// </summary>
+    /// <param name="groups">The <see cref="DropItemGroup"/>s which define the possible result.</param>
+    /// <returns>The generated items, money and drop effect of the selected group.</returns>
+    (IEnumerable<Item> Items, uint? Money, ItemDropEffect DropEffect) GenerateItemDrops(IEnumerable<DropItemGroup> groups);
 }

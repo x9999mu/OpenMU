@@ -784,6 +784,7 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureKalimaSevenBossDropsUpdatePlugIn"/>.
     /// </summary>
     ConfigureKalimaSevenBossDrops = 155,
+
     /// <summary>
     /// The version of the <see cref="RepairSocketSphereLevelsUpdatePlugIn"/>.
     /// </summary>
@@ -793,4 +794,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureKalimaSevenBossAncientDropsUpdatePlugIn"/>.
     /// </summary>
     ConfigureKalimaSevenBossAncientDrops = 157,
+
+    /// <summary>
+    /// The version of the <see cref="ConfigureGmGiftLootUpdatePlugIn"/>.
+    /// </summary>
+    ConfigureGmGiftLoot = 158,
 }

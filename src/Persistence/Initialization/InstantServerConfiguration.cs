@@ -347,6 +347,7 @@ internal static class InstantServerConfiguration
         ConfigureBossDifficulty(gameConfiguration);
         ConfigureIcarusAndKalimaSevenJewelDrops(context, gameConfiguration);
         ConfigureKalimaSevenBossDrops(context, gameConfiguration);
+        ConfigureGmGiftLoot(context, gameConfiguration);
         ConfigureKalimaSevenBossDefenseRate(gameConfiguration);
     }
 
@@ -428,23 +429,64 @@ internal static class InstantServerConfiguration
     }
 
     /// <summary>
-    /// Adds the low-rate full-excellent jewelry opening to GM Gift.
+    /// Configures the GM Gift outcome table.
+    /// </summary>
+    /// <param name="context">The persistence context.</param>
+    /// <param name="gameConfiguration">The game configuration.</param>
+    internal static void ConfigureGmGiftLoot(IContext context, GameConfiguration gameConfiguration)
+    {
+        var gift = GetItemDefinition(gameConfiguration, 14, 52);
+        var expectedGroupIds = Enumerable.Range(0, 5).Select(number => GuidHelper.CreateGuid<ItemDropItemGroup>(gift.Group, gift.Number, (byte)number)).ToHashSet();
+        foreach (var obsolete in gift.DropItems.Where(group => !expectedGroupIds.Contains(group.GetId())).ToList())
+        {
+            gift.DropItems.Remove(obsolete);
+        }
+        var jewelry = EnsureGmGiftDropGroup(context, gift, 1);
+        jewelry.ItemType = SpecialItemType.FullExcellent;
+        jewelry.Chance = 0.05;
+        jewelry.MinimumLevel = 4;
+        jewelry.MaximumLevel = 4;
+        jewelry.Description = "Full Excellent Jewelry Gacha (GM Gift)";
+        jewelry.DropEffect = ItemDropEffect.FanfareSound;
+        jewelry.PossibleItems.Clear();
+        foreach (var item in gameConfiguration.Items.Where(item => item.Group == 13 && item.Number is 8 or 9 or 12 or 13 or >= 21 and <= 28))
+        {
+            jewelry.PossibleItems.Add(item);
+        }
+
+        ConfigureGmGiftBoxDrop(EnsureGmGiftDropGroup(context, gift, 0), gift, 0.30, 1, "GM Gift x1");
+        ConfigureGmGiftBoxDrop(EnsureGmGiftDropGroup(context, gift, 2), gift, 0.03, 2, "GM Gift x2");
+
+        var fireworks = EnsureGmGiftDropGroup(context, gift, 3);
+        fireworks.SourceItemLevel = 0;
+        fireworks.ItemType = SpecialItemType.None;
+        fireworks.Chance = 0.10;
+        fireworks.Description = "GM Gift Fireworks";
+        fireworks.DropEffect = ItemDropEffect.Fireworks;
+        fireworks.PossibleItems.Clear();
+        fireworks.ItemAmount = 1;
+        var ancient = EnsureGmGiftDropGroup(context, gift, 4);
+        ancient.SourceItemLevel = 0;
+        ancient.ItemType = SpecialItemType.Ancient;
+        ancient.Chance = 0.52;
+        ancient.MinimumLevel = 9;
+        ancient.MaximumLevel = 9;
+        ancient.ItemLevel = 9;
+        ancient.Description = "Random Ancient Set item (GM Gift)";
+        ancient.DropEffect = ItemDropEffect.FanfareSound;
+        ancient.PossibleItems.Clear();
+        ancient.ItemAmount = 1;
+    }
+
+    /// <summary>
+    /// Adds the historical low-rate full-excellent jewelry opening to GM Gift.
     /// </summary>
     /// <param name="context">The persistence context.</param>
     /// <param name="gameConfiguration">The game configuration.</param>
     internal static void ConfigureGmGiftJewelry(IContext context, GameConfiguration gameConfiguration)
     {
         var gift = GetItemDefinition(gameConfiguration, 14, 52);
-        var jewelryId = GuidHelper.CreateGuid<ItemDropItemGroup>(gift.Group, gift.Number, 1);
-        var jewelry = gift.DropItems.FirstOrDefault(group => group.GetId() == jewelryId);
-        if (jewelry is null)
-        {
-            jewelry = context.CreateNew<ItemDropItemGroup>();
-            jewelry.SetGuid(jewelryId);
-            gift.DropItems.Add(jewelry);
-        }
-
-        jewelry.SourceItemLevel = 0;
+        var jewelry = EnsureGmGiftDropGroup(context, gift, 1);
         jewelry.ItemType = SpecialItemType.FullExcellent;
         jewelry.Chance = 0.01;
         jewelry.MinimumLevel = 4;
@@ -458,6 +500,36 @@ internal static class InstantServerConfiguration
         }
 
         gift.DropItems.Single(group => group.GetId() == GuidHelper.CreateGuid<ItemDropItemGroup>(gift.Group, gift.Number, 0)).Chance = 0.99;
+    }
+
+    private static ItemDropItemGroup EnsureGmGiftDropGroup(IContext context, ItemDefinition gift, byte number)
+    {
+        var id = GuidHelper.CreateGuid<ItemDropItemGroup>(gift.Group, gift.Number, number);
+        var group = gift.DropItems.FirstOrDefault(drop => drop.GetId() == id);
+        if (group is null)
+        {
+            group = context.CreateNew<ItemDropItemGroup>();
+            group.SetGuid(id);
+            gift.DropItems.Add(group);
+        }
+
+        group.SourceItemLevel = 0;
+        group.MinimumLevel = 0;
+        group.MaximumLevel = 0;
+        group.RequiredCharacterLevel = 0;
+        group.Monster = null;
+        return group;
+    }
+
+    private static void ConfigureGmGiftBoxDrop(ItemDropItemGroup group, ItemDefinition gift, double chance, byte amount, string description)
+    {
+        group.ItemType = SpecialItemType.RandomItem;
+        group.Chance = chance;
+        group.Description = description;
+        group.DropEffect = ItemDropEffect.Undefined;
+        group.ItemAmount = amount;
+        group.PossibleItems.Clear();
+        group.PossibleItems.Add(gift);
     }
 
     /// <summary>

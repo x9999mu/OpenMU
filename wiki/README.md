@@ -46,7 +46,7 @@ Một số bộ client có thể được cấu hình dùng cổng `44406`. Nế
 6. Lập party rồi luyện tại các spot đông quái cho tới level 400; quái luôn cho Zen và chỉ quay thêm ngọc hoặc box, không rơi trang bị trực tiếp.
 7. Nhặt Box of Kundun +1 đến +3 từ quái thường để nâng dần trang bị.
 8. Mua item change class tại Potion Girl Amy khi cần làm quest chuyển class.
-9. Farm Icarus để săn Box +4; theo thông báo invasion và tập trung nhóm săn boss để lấy Box +4, +5 hoặc GM Gift Full Option.
+9. Farm Icarus để săn Box +4; theo thông báo invasion và tập trung nhóm săn boss để lấy Box +4, +5 hoặc GM Gift.
 10. Sau khi hoàn thiện build, thử đấu PvP hoặc đổi cách phân bổ stat.
 
 ## 4. Shop trang bị và skill
@@ -205,12 +205,12 @@ Với Wings cấp 2 và Cape of Fighter có ba special lines, xác suất nhận
 
 ## 6. Trang bị Excellent trong shop
 
-Đồ shop là bộ khởi đầu mạnh, nhưng vẫn không bằng phần thưởng full-option từ Box +4/+5 hoặc GM Gift:
+Đồ shop là bộ khởi đầu mạnh, nhưng vẫn không bằng phần thưởng từ Box +4/+5, GM Gift hoặc Ancient Set:
 
 - Mọi trang bị hỗ trợ normal option đều được bán sẵn ở **+9**, có **Luck** và normal option cấp tối đa; không cần gắn thêm Jewel of Life.
 - Vũ khí giữ skill nếu loại vũ khí đó hỗ trợ và giữ Excellent option tấn công có sẵn.
 - Giáp giữ Excellent option phòng thủ/sinh tồn có sẵn.
-- Muốn có toàn bộ Excellent lines và các set/vũ khí gần end-game, người chơi vẫn phải săn Box +4, +5 hoặc GM Gift.
+- Muốn có Ancient Set hoặc các set/vũ khí gần end-game, người chơi vẫn phải săn boss, GM Gift hoặc Box +4/+5.
 
 ## 7. Hướng dẫn săn Box of Kundun
 
@@ -250,7 +250,7 @@ Mỗi boss hợp lệ có một lượt gacha với tổng xác suất 100%:
 | --- | ---: |
 | Box of Kundun +4 | 47,5% |
 | Box of Kundun +5 | 47,5% |
-| GM Gift Full Option | 5% |
+| GM Gift | 5% |
 
 Các boss áp dụng gồm nhóm Golden Monster, Red Dragon, White Wizard, Illusion of Kundun, Erohim, Nightmare, Maya và hai tay Maya, Dark Elf và Selupan. Hộ vệ của White Wizard không được tính là boss. Golden → Red Dragon → White Wizard chạy luân phiên, đổi event mỗi 10 phút; hãy theo thông báo trong game để tìm đúng map.
 
@@ -350,33 +350,26 @@ Bạn có thể ghép 10 Box of Kundun cấp thấp thành 1 Box cấp cao hơn 
 - **Staff/Stick:** Grand Viper Staff, Storm Blitz Stick, Eternal Wing Stick, Deadly Staff, Imperial Staff.
 - **Set level 380:** Dragon Knight (DK/BK), Venom Mist (DW/SM), Sylphid Ray (Elf), Volcano (MG), Sunlight (DL), Aura (Summoner), Phoenix Soul (RF).
 
-## 9. GM Gift Full Option
+## 9. GM Gift
 
-GM Gift là jackpot có tỷ lệ **5% từ boss**. Client gốc có thể vẫn hiển thị tên item là `GM Gift`; đây chính là box Full Option cao nhất của server.
+GM Gift không còn mở trực tiếp trang bị Full Excellent. Khi mở GM Gift, kết quả hiện tại là:
 
-GM Gift chứa **toàn bộ vũ khí và set của Box +5**, cộng thêm các set socket end-game:
+| Kết quả | Tỷ lệ |
+| --- | ---: |
+| 1 Ring/Pendant Full Excellent, level +4 | 5% |
+| 1 GM Gift box | 30% |
+| 2 GM Gift box | 3% |
+| Fireworks, không rơi item | 10% |
+| 1 Ancient Set item ngẫu nhiên | 52% |
 
-- Titan.
-- Brave.
-- Destroy — một số client/data hiển thị tên `Destory`.
-- Phantom.
-- Seraphim.
-- Faith.
-- Paewang.
-- Hades.
-- Queen.
+Ancient Set item sử dụng cùng pool Ancient Set với phần thưởng riêng của Illusion of Kundun 7 và có Ancient Set option. GM Gift x2 tạo ra **hai item GM Gift riêng biệt**, không phải một item có số lượng 2.
 
-GM Gift có **1%** mở ra một Ring hoặc Pendant ngẫu nhiên: Ring of Ice/Poison/Fire/Earth/Wind/Magic và Pendant of Lightning/Fire/Ice/Wind/Water/Ability. Các trang sức này cũng nhận **+4** (cấp tối đa chúng hỗ trợ), full Excellent, Luck và normal option tối đa; **99%** còn lại giữ pool vũ khí/set nêu trên.
+Ring/Pendant Full Excellent được chọn trong các item:
 
-Item nhận được có:
+- Ring of Ice, Poison, Fire, Earth, Wind, Magic.
+- Pendant of Lightning, Fire, Ice, Wind, Water, Ability.
 
-- Level **+9**.
-- Toàn bộ Excellent lines mà item hỗ trợ.
-- Luck nếu item hỗ trợ.
-- Skill nếu vũ khí hỗ trợ skill.
-- Normal option cấp tối đa nếu item hỗ trợ.
-- Durability tối đa.
-- Với trang bị socket: số socket ngẫu nhiên từ 1 đến giới hạn của item; socket chưa được gắn seed option sẵn.
+Trang sức nhận level **+4**, toàn bộ Excellent option mà item hỗ trợ, Luck nếu hỗ trợ và normal option cấp tối đa.
 
 ## 10. Lịch invasion boss
 
@@ -450,7 +443,7 @@ Box +1/+2/+3 vẫn quay số Excellent options ngẫu nhiên. Box +4/+5 và GM G
 Không bắt buộc. Với 500 point mỗi level, lần lên level 400 đầu tiên đã đủ điểm cho một build rất mạnh và có thể đạt giới hạn các stat cần thiết.
 
 ### Skill đã mua nhưng chưa học được?
-
+Box +4/+5 lấy toàn bộ Excellent lines mà loại item hỗ trợ; GM Gift hiện mở thành Ring/Pendant Full Excellent, GM Gift box, fireworks hoặc Ancient Set item theo bảng ở trên.
 Shop bán đủ skill phù hợp với class, kể cả skill cấp cao. Yêu cầu level, class và quest của từng skill vẫn được kiểm tra khi sử dụng.
 
 ## 14. Tóm tắt cho người mới

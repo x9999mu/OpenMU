@@ -92,4 +92,9 @@ public class ChaosCastleDropGenerator : IDropGenerator
     {
         return this._gameContext.DropGenerator.GenerateItemDrop(groups);
     }
+    /// <inheritdoc />
+    public (IEnumerable<Item> Items, uint? Money, ItemDropEffect DropEffect) GenerateItemDrops(IEnumerable<DropItemGroup> groups)
+    {
+        return this._gameContext.DropGenerator.GenerateItemDrops(groups);
+    }
 }

@@ -152,15 +152,16 @@ public class DropGeneratorTest
         var kundunBox = configuration.Items.Single(item => item is { Group: 14, Number: 11 });
         var kundunFourOpening = kundunBox.DropItems.Single(group => group.SourceItemLevel == 11);
         var kundunFiveOpening = kundunBox.DropItems.Single(group => group.SourceItemLevel == 12);
-        var jackpotOpening = configuration.Items.Single(item => item is { Group: 14, Number: 52 }).DropItems.Single();
+        var gmGift = configuration.Items.Single(item => item is { Group: 14, Number: 52 });
+        var gmGiftOpening = gmGift.DropItems.Single(group => group.GetId() == new Guid(0x201, 14, 52, 0, 0, 0, 0, 0, 0, 0, 0));
         var itemGenerator = new DefaultDropGenerator(configuration, this.GetSequenceRandomizer());
         var kundunFour = itemGenerator.GenerateItemDrop(kundunFourOpening);
         var kundunFive = itemGenerator.GenerateItemDrop(kundunFiveOpening);
-        var jackpot = itemGenerator.GenerateItemDrop(jackpotOpening);
+        var gmGiftItem = itemGenerator.GenerateItemDrop(gmGiftOpening);
         Assert.That(kundunFour, Is.Not.Null);
         Assert.That(kundunFive, Is.Not.Null);
-        Assert.That(jackpot, Is.Not.Null);
-        foreach (var item in new[] { kundunFour!, kundunFive!, jackpot! })
+        Assert.That(gmGiftItem, Is.Not.Null);
+        foreach (var item in new[] { kundunFour!, kundunFive! })
         {
             Assert.Multiple(() =>
             {
@@ -175,8 +176,28 @@ public class DropGeneratorTest
 
         Assert.That(kundunFour!.Definition!.Group, Is.InRange((byte)0, (byte)11));
         Assert.That(kundunFive!.Definition!.DropLevel, Is.GreaterThanOrEqualTo(80));
-        Assert.That(jackpotOpening.PossibleItems, Is.SupersetOf(kundunFiveOpening.PossibleItems));
+        Assert.That(gmGiftItem!.Definition, Is.SameAs(gmGift));
+        Assert.That(gmGiftOpening.PossibleItems, Is.EqualTo(new[] { gmGift }));
 
+        var gmGiftBundleOpening = gmGift.DropItems.Single(group => group.ItemAmount == 2);
+        var jewelryOpening = gmGift.DropItems.Single(group => group.ItemType == SpecialItemType.FullExcellent);
+        var jewelryItem = itemGenerator.GenerateItemDrop(jewelryOpening);
+        Assert.That(jewelryItem, Is.Not.Null);
+        Assert.That(jewelryItem!.Level, Is.EqualTo(4));
+
+        var ancientOpening = gmGift.DropItems.Single(group => group.ItemType == SpecialItemType.Ancient);
+        var (ancientItems, _, _) = itemGenerator.GenerateItemDrops(new[] { ancientOpening });
+        var ancientItem = ancientItems.Single();
+        Assert.That(ancientItem.Level, Is.EqualTo(9));
+        Assert.That(ancientItem.ItemSetGroups, Is.Not.Empty);
+
+        var fireworksOpening = gmGift.DropItems.Single(group => group.DropEffect == ItemDropEffect.Fireworks);
+        var (fireworksItems, _, fireworksEffect) = itemGenerator.GenerateItemDrops(new[] { fireworksOpening });
+        Assert.That(fireworksItems, Is.Empty);
+        Assert.That(fireworksEffect, Is.EqualTo(ItemDropEffect.Fireworks));
+        var (gmGiftBundle, _, _) = itemGenerator.GenerateItemDrops(new[] { gmGiftBundleOpening });
+        Assert.That(gmGiftBundle, Has.Exactly(2).Items);
+        Assert.That(gmGiftBundle.Select(item => item.Definition), Is.All.EqualTo(gmGift));
         var icarusDrop = configuration.DropItemGroups.Single(group => group.GetId() == new Guid(0x200, 9_999, 10, 4, 0, 0, 0, 0, 0, 0, 0));
         var icarusGenerator = new DefaultDropGenerator(configuration, this.GetSequenceRandomizer(0.04, 0.06));
         Assert.Multiple(() =>

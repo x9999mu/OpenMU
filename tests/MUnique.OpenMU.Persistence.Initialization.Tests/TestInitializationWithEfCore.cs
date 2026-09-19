@@ -1194,10 +1194,10 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
-    /// Tests that the GM Gift jewelry update adds one low-rate full-excellent opening idempotently.
+    /// Tests that the GM Gift outcome table is installed idempotently.
     /// </summary>
     [Test]
-    public async Task TestGmGiftJewelryUpdatePlugInAsync()
+    public async Task TestGmGiftLootUpdatePlugInAsync()
     {
         var contextProvider = new InMemoryPersistenceContextProvider();
         var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
@@ -1205,27 +1205,25 @@ internal class TestInitializationWithEfCore
 
         using var context = contextProvider.CreateNewContext();
         var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
-        var update = new ConfigureGmGiftJewelryUpdatePlugIn();
+        var update = new ConfigureGmGiftLootUpdatePlugIn();
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
 
         var gift = configuration.Items.Single(item => item is { Group: 14, Number: 52 });
-        var equipment = gift.DropItems.Single(group => group.GetId() == new Guid(0x201, 14, 52, 0, 0, 0, 0, 0, 0, 0, 0));
-        var jewelry = gift.DropItems.Single(group => group.GetId() == new Guid(0x201, 14, 52, 1, 0, 0, 0, 0, 0, 0, 0));
+        var drops = gift.DropItems.OrderBy(group => group.GetId()).ToList();
         Assert.Multiple(() =>
         {
-            Assert.That(gift.DropItems, Has.Count.EqualTo(2));
-            Assert.That(equipment.Chance, Is.EqualTo(0.99));
-            Assert.That(jewelry.ItemType, Is.EqualTo(SpecialItemType.FullExcellent));
-            Assert.That(jewelry.Chance, Is.EqualTo(0.01));
-            Assert.That(jewelry.MinimumLevel, Is.EqualTo(4));
-            Assert.That(jewelry.MaximumLevel, Is.EqualTo(4));
-            Assert.That(jewelry.PossibleItems.Select(item => (item.Group, item.Number)), Is.EquivalentTo(new[]
-            {
-                ((byte)13, (short)8), ((byte)13, (short)9), ((byte)13, (short)12), ((byte)13, (short)13),
-                ((byte)13, (short)21), ((byte)13, (short)22), ((byte)13, (short)23), ((byte)13, (short)24),
-                ((byte)13, (short)25), ((byte)13, (short)26), ((byte)13, (short)27), ((byte)13, (short)28),
-            }));
+            Assert.That(drops, Has.Count.EqualTo(5));
+            Assert.That(drops.Select(group => group.Chance), Is.EquivalentTo(new[] { 0.30, 0.05, 0.03, 0.10, 0.52 }));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullExcellent).MinimumLevel, Is.EqualTo(4));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullExcellent).MaximumLevel, Is.EqualTo(4));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.Ancient).MinimumLevel, Is.EqualTo(9));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.Ancient).MaximumLevel, Is.EqualTo(9));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.Ancient).PossibleItems, Is.Empty);
+            Assert.That(drops.Single(group => group.DropEffect == ItemDropEffect.Fireworks).Chance, Is.EqualTo(0.10));
+            Assert.That(drops.Single(group => group.ItemAmount == 2).Chance, Is.EqualTo(0.03));
+            Assert.That(drops.Single(group => group.ItemAmount == 2).PossibleItems, Is.EqualTo(new[] { gift }));
+            Assert.That(drops.Single(group => group.ItemAmount == 1 && group.PossibleItems.Contains(gift)).Chance, Is.EqualTo(0.30));
         });
     }
 

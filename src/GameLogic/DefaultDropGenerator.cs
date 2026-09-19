@@ -126,6 +126,33 @@ public class DefaultDropGenerator : IDropGenerator
 
         return (this.GenerateItemDrop(group), null, dropEffect);
     }
+    /// <inheritdoc/>
+    public (IEnumerable<Item> Items, uint? Money, ItemDropEffect DropEffect) GenerateItemDrops(IEnumerable<DropItemGroup> groups)
+    {
+        var group = this.SelectRandomGroup(groups.OrderBy(group => group.Chance), 1.0);
+        if (group is null)
+        {
+            return ([], null, ItemDropEffect.Undefined);
+        }
+
+        var dropEffect = group is ItemDropItemGroup itemDropItemGroup ? itemDropItemGroup.DropEffect : ItemDropEffect.Undefined;
+        if (group is ItemDropItemGroup { ItemType: SpecialItemType.Money } moneyGroup)
+        {
+            return ([], (uint)moneyGroup.MoneyAmount, dropEffect);
+        }
+
+        var amount = group is ItemDropItemGroup itemGroup ? Math.Max(1, (int)itemGroup.ItemAmount) : 1;
+        var items = new List<Item>(amount);
+        for (var i = 0; i < amount; i++)
+        {
+            if (this.GenerateItemDrop(group) is { } item)
+            {
+                items.Add(item);
+            }
+        }
+
+        return (items, null, dropEffect);
+    }
 
     /// <summary>
     /// Gets a random item.

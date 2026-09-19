@@ -73,4 +73,8 @@ public partial class ItemDropItemGroup : DropItemGroup
     /// Gets or sets the effect which should be shown in the game client when this drop group is applied.
     /// </summary>
     public ItemDropEffect DropEffect { get; set; }
+    /// <summary>
+    /// Gets or sets the number of items generated when this group is selected.
+    /// </summary>
+    public byte ItemAmount { get; set; } = 1;
 }
