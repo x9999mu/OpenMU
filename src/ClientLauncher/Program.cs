@@ -23,10 +23,17 @@ internal static class Program
             return;
         }
 
+        var options = LauncherCommandLine.Parse(args);
+        if (options.UpdateOnly)
+        {
+            Environment.ExitCode = HeadlessUpdateRunner.Run(options);
+            return;
+        }
+
         SelfUpdater.CleanupStaleFiles();
         LauncherPaths.EnsureCreated();
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        Application.Run(new MainForm());
+        Application.Run(new MainForm(options));
     }
 }

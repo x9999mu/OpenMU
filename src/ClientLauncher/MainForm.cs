@@ -23,6 +23,7 @@ public partial class MainForm : Form
 
     private LauncherSettings _settings = new();
     private BindingList<ServerHostSettings> _hostsBindingList = new();
+    private readonly LauncherCommandLine _commandLine;
     private UpdateService? _updateService;
     private bool _isBusy;
 
@@ -30,10 +31,20 @@ public partial class MainForm : Form
     /// Initializes a new instance of the <see cref="MainForm"/> class.
     /// </summary>
     public MainForm()
+        : this(new LauncherCommandLine())
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MainForm"/> class.
+    /// </summary>
+    /// <param name="commandLine">The command line options of the launcher.</param>
+    internal MainForm(LauncherCommandLine commandLine)
+    {
+        this._commandLine = commandLine;
         this.InitializeComponent();
         this.LoadOptions();
-        this._updateService = new UpdateService(this._settings);
+        this._updateService = new UpdateService(this._settings, commandLine.DataDirectory);
         this.UpdateButtonStates();
         this.Shown += this.OnFormShown;
     }
@@ -234,6 +245,18 @@ public partial class MainForm : Form
         this._settings.ManifestUrl ??= LauncherSettings.DefaultManifestUrl;
         this._settings.Channel ??= "stable";
         this._settings.InstallDirectory ??= LauncherPaths.DefaultInstallDirectory;
+
+        if (!string.IsNullOrWhiteSpace(this._commandLine.InstallDirectory))
+        {
+            this._settings.InstallDirectory = this._commandLine.InstallDirectory;
+            this._settings.MainExePath = Path.Combine(this._commandLine.InstallDirectory!, "Main.exe");
+        }
+
+        if (!string.IsNullOrWhiteSpace(this._commandLine.ManifestUrl))
+        {
+            this._settings.ManifestUrl = this._commandLine.ManifestUrl;
+        }
+
         this._settings.MainExePath ??= Path.Combine(this._settings.InstallDirectory, "Main.exe");
         this.MainExePathTextBox.Text = this._settings.MainExePath;
         this.SetStatus($"Launcher {UpdateService.LauncherVersion}");

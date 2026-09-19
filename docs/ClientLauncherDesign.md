@@ -484,6 +484,52 @@ Dùng HTTP server cục bộ (fixture manifest + archive nhỏ) để chạy tr�
 | 12 | Ổ đĩa gần hết | Báo lỗi rõ, không ghi dở |
 | 13 | Antivirus chặn ghi | Báo lỗi kèm gợi ý, không treo |
 
+### 13.4 Chạy thử bằng GUI tại máy local (không cần GitHub)
+
+Cách này cho đúng trải nghiệm người chơi: mở launcher, thấy thanh tiến trình, rồi Start game.
+
+1. Tạo thư mục phục vụ, ví dụ `D:\mu-test\serve`.
+2. Tạo archive runtime từ bản build client (Windows có sẵn `tar`):
+   `tar -czf D:\mu-test\serve\MuMain-runtime-test.tar.gz -C <thư-mục-build>\Release .`
+   (cần `Main.exe`, `MUnique.Client.Library.dll`, các DLL runtime, `shaders\`, `config.ini`)
+3. Chép archive data vào cùng thư mục, ví dụ `MuMain-data-7fce146eb3fe34a0.tar.gz`.
+4. Sinh manifest trỏ về server local:
+
+   ```sh
+   python client/tools/generate_manifest.py \
+     --runtime-version 1.0.0 \
+     --runtime-archive D:\mu-test\serve\MuMain-runtime-test.tar.gz \
+     --data-id 7fce146eb3fe34a0 \
+     --data-archive D:\mu-test\serve\MuMain-data-7fce146eb3fe34a0.tar.gz \
+     --base-url http://127.0.0.1:8099/ \
+     --server-host 100.108.169.118 \
+     --output D:\mu-test\serve\manifest.json
+   ```
+
+5. Chạy web server: `python -m http.server 8099 --directory D:\mu-test\serve`
+6. Chạy launcher GUI:
+
+   ```sh
+   src\ClientLauncher\bin\Debug\MUnique.OpenMU.ClientLauncher.exe --manifest http://127.0.0.1:8099/manifest.json
+   ```
+
+   Không truyền `--install-dir`/`--data-dir` thì launcher dùng đúng thư mục của người chơi
+   (`%LOCALAPPDATA%\MuOnline`), giống bản phát hành thật. Muốn test lặp lại nhiều lần thì thêm
+   `--install-dir D:\mu-test\client --data-dir D:\mu-test\state` để không đụng bản cài thật.
+7. Bấm Start: launcher tải, verify SHA-256, giải nén, cài rồi chạy `Main.exe connect /u… /p…`.
+8. Thử cập nhật: sửa một file trong `Data`, tạo archive data mới và sinh lại manifest với
+   `--data-id` mới → mở lại launcher, nó phải tải lại archive data (~447 MB) rồi mới vào game.
+9. Kiểm tra `%LOCALAPPDATA%\MuOnline\launcher.log`, `launcher-state.json` và thư mục `.cache`.
+
+Bảng tuỳ chọn dòng lệnh của launcher:
+
+| Tuỳ chọn | Ý nghĩa |
+| --- | --- |
+| `--manifest <url>` | Dùng manifest khác, ví dụ server test local |
+| `--install-dir <path>` | Cài client vào thư mục khác |
+| `--data-dir <path>` | Đổi chỗ chứa state/cache/log |
+| `--update-only` (hoặc `--silent`) | Cập nhật rồi thoát, không mở giao diện (dùng cho automation) |
+
 ## 14. Lộ trình
 
 Trạng thái hiện tại: P1, P2 và P3 đã được triển khai trong `src/ClientLauncher/Updater/`,
