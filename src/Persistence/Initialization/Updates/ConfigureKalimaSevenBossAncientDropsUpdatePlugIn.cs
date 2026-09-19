@@ -1,4 +1,4 @@
-// <copyright file="ConfigureKalimaSevenBossDropsUpdatePlugIn.cs" company="MUnique">
+// <copyright file="ConfigureKalimaSevenBossAncientDropsUpdatePlugIn.cs" company="MUnique">
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 // </copyright>
 
@@ -9,25 +9,25 @@ using MUnique.OpenMU.DataModel.Configuration;
 using MUnique.OpenMU.PlugIns;
 
 /// <summary>
-/// Configures the loot of the Illusion of Kundun 7.
+/// Changes the Kalima 7 boss equipment reward from full-excellent equipment to Ancient Set equipment.
 /// </summary>
 [PlugIn]
 [Display(Name = PlugInName, Description = PlugInDescription)]
-[Guid("7B4E1A62-9C3D-4F58-8E21-5A6D2F0B7C94")]
-public sealed class ConfigureKalimaSevenBossDropsUpdatePlugIn : UpdatePlugInBase
+[Guid("D6C2A8F4-1E73-4B95-9A0D-6F84C2B7E531")]
+public sealed class ConfigureKalimaSevenBossAncientDropsUpdatePlugIn : UpdatePlugInBase
 {
     /// <summary>
     /// The update name.
     /// </summary>
-    internal const string PlugInName = "Configure Kalima 7 Boss Drops";
+    internal const string PlugInName = "Configure Kalima 7 Ancient Boss Drop";
 
     /// <summary>
     /// The update description.
     /// </summary>
-    internal const string PlugInDescription = "Makes the Illusion of Kundun 7 drop three GM Gifts, three Box of Kundun +5, one Jewel of Harmony, one Jewel of Guardian and one random Ancient Set item.";
+    internal const string PlugInDescription = "Changes the Illusion of Kundun 7 equipment reward to a random Ancient Set item.";
 
     /// <inheritdoc />
-    public override UpdateVersion Version => UpdateVersion.ConfigureKalimaSevenBossDrops;
+    public override UpdateVersion Version => UpdateVersion.ConfigureKalimaSevenBossAncientDrops;
 
     /// <inheritdoc />
     public override string DataInitializationKey => VersionSeasonSix.DataInitialization.Id;
@@ -39,7 +39,7 @@ public sealed class ConfigureKalimaSevenBossDropsUpdatePlugIn : UpdatePlugInBase
     public override string Description => PlugInDescription;
 
     /// <inheritdoc />
-    public override DateTime CreatedAt => new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+    public override DateTime CreatedAt => new(2026, 9, 19, 23, 0, 0, DateTimeKind.Utc);
 
     /// <inheritdoc />
     public override bool IsMandatory => true;

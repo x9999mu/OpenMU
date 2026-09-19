@@ -260,13 +260,13 @@ Illusion of Kundun 7 (map **Kalima 7**) không dùng bảng gacha chung ở trê
 
 | Phần thưởng | Số lượng |
 | --- | ---: |
-| GM Gift Full Option | 3 |
+| GM Gift | 3 |
 | Box of Kundun +5 | 3 |
 | Jewel of Harmony | 1 |
 | Jewel of Guardian | 1 |
-| Trang bị full option ngẫu nhiên (+9, mọi dòng Excellent) | 1 |
+| Ancient Set item ngẫu nhiên | 1 |
 
-Món full option ngẫu nhiên dùng chung pool với GM Gift (vũ khí và set giáp gần end-game). Boss không rơi Zen, không rơi Box +4 và không rơi Jewel of Bless/Soul/Chaos.
+Món Ancient là một mảnh thuộc các Ancient Set đã có trong Season 6, có Ancient Set option; level thực tế không vượt quá giới hạn của item. Boss không rơi Zen, không rơi Box +4 và không rơi Jewel of Bless/Soul/Chaos.
 
 ### Ép Box of Kundun (Nâng cấp)
 

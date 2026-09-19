@@ -550,7 +550,7 @@ internal static class InstantServerConfiguration
 
     /// <summary>
     /// Configures the loot of the Illusion of Kundun 7: three GM Gifts, three Box of Kundun +5, one Jewel
-    /// of Harmony, one Jewel of Guardian and one random full-option item.
+    /// of Harmony, one Jewel of Guardian and one random Ancient Set item.
     /// </summary>
     /// <param name="context">The persistence context.</param>
     /// <param name="gameConfiguration">The game configuration.</param>
@@ -573,8 +573,8 @@ internal static class InstantServerConfiguration
         drops.Add((GuidHelper.CreateGuid<DropItemGroup>(boss.Number, 10), $"{boss.Designation}: Jewel of Harmony", GetItemDefinition(gameConfiguration, 14, 42), SpecialItemType.Jewel, null));
         drops.Add((GuidHelper.CreateGuid<DropItemGroup>(boss.Number, 20), $"{boss.Designation}: Jewel of Guardian", GetItemDefinition(gameConfiguration, 14, 31), SpecialItemType.Jewel, null));
 
-        var fullOptionId = GuidHelper.CreateGuid<DropItemGroup>(9_999, boss.Number, 51);
-        var keptIds = drops.Select(drop => drop.Id).Append(fullOptionId).ToHashSet();
+        var ancientItemId = GuidHelper.CreateGuid<DropItemGroup>(9_999, boss.Number, 51);
+        var keptIds = drops.Select(drop => drop.Id).Append(ancientItemId).ToHashSet();
         foreach (var obsolete in boss.DropItemGroups.Where(group => !keptIds.Contains(group.GetId())).ToList())
         {
             DetachDropGroup(gameConfiguration, boss, obsolete);
@@ -587,16 +587,16 @@ internal static class InstantServerConfiguration
             AttachGroups(boss, group);
         }
 
-        var fullOption = EnsureDropGroup(context, gameConfiguration, fullOptionId);
-        fullOption.Description = $"{boss.Designation}: random full-option item";
-        fullOption.Chance = 1.0;
-        fullOption.ItemType = SpecialItemType.FullExcellent;
-        fullOption.ItemLevel = 9;
-        fullOption.MinimumMonsterLevel = null;
-        fullOption.MaximumMonsterLevel = null;
-        fullOption.Monster = boss;
-        ReplaceEquipmentPool(gameConfiguration, fullOption, KundunFiveDirectItems, GmGiftArmorSets);
-        AttachGroups(boss, fullOption);
+        var ancientItem = EnsureDropGroup(context, gameConfiguration, ancientItemId);
+        ancientItem.Description = $"{boss.Designation}: random Ancient Set item";
+        ancientItem.Chance = 1.0;
+        ancientItem.ItemType = SpecialItemType.Ancient;
+        ancientItem.ItemLevel = 9;
+        ancientItem.MinimumMonsterLevel = null;
+        ancientItem.MaximumMonsterLevel = null;
+        ancientItem.Monster = boss;
+        ancientItem.PossibleItems.Clear();
+        AttachGroups(boss, ancientItem);
 
         boss.NumberOfMaximumItemDrops = drops.Count + 1;
     }

@@ -599,6 +599,11 @@ public class DefaultDropGenerator : IDropGenerator
         }
 
         var item = this.GenerateSpecialItem(monster, selectedGroup);
+        if (item is not null && selectedGroup.ItemType == SpecialItemType.Ancient && selectedGroup.ItemLevel is { } itemLevel)
+        {
+            item.Level = Math.Min(itemLevel, item.Definition!.MaximumItemLevel);
+        }
+
         if (item is null && selectedGroup.ItemType == SpecialItemType.Money)
         {
             droppedMoney = (uint)(gainedExperience + BaseMoneyDrop);

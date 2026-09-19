@@ -863,6 +863,32 @@ internal class TestInitializationWithEfCore
         AssertIcarusAndKalimaSevenJewelDrops(configuration);
     }
 
+    /// <summary>
+    /// Tests that the Ancient Set loot update repairs the previous full-option group idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestConfigureKalimaSevenBossAncientDropsUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var kundunSeven = configuration.Monsters.Single(monster => monster.Number == 275);
+        var previousGroup = kundunSeven.DropItemGroups.Single(group => group.ItemType == SpecialItemType.Ancient);
+        previousGroup.ItemType = SpecialItemType.FullExcellent;
+        previousGroup.PossibleItems.Add(configuration.Items.First(item => item.DropsFromMonsters));
+
+        var update = new ConfigureKalimaSevenBossAncientDropsUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var dropGroupCount = configuration.DropItemGroups.Count;
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount), "the second application must not add groups");
+        AssertIcarusAndKalimaSevenJewelDrops(configuration);
+    }
+
     [Test]
     public async Task TestReduceKalimaSevenBossDefenseRateUpdatePlugInAsync()
     {
@@ -974,8 +1000,7 @@ internal class TestInitializationWithEfCore
             .Select(value => DropGroupId(9_999, kundun7.Number, (byte)value))
             .ToList();
         var gachaBossDropGroupIds = new short[] { 4, 5, 6 }.Select(number => DropGroupId(9_999, number)).ToList();
-        var fullOptionItem = kundunDropGroups.Single(group => group.ItemType == SpecialItemType.FullExcellent);
-        var jackpotOpening = gmGift.DropItems.Single(group => group.GetId() == new Guid(0x201, 14, 52, 0, 0, 0, 0, 0, 0, 0, 0));
+        var ancientItem = kundunDropGroups.Single(group => group.ItemType == SpecialItemType.Ancient);
         Assert.Multiple(() =>
         {
             Assert.That(kundun7.NumberOfMaximumItemDrops, Is.EqualTo(9), "Kundun 7: max drops");
@@ -990,9 +1015,8 @@ internal class TestInitializationWithEfCore
             Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == gmGift), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.RandomItem, ItemLevel: 0 }), "Kundun 7: GM Gift groups");
             Assert.That(kundunDropGroups.Where(group => group.PossibleItems.Count == 1 && group.PossibleItems.Single() == kundunBox), Is.All.Matches<DropItemGroup>(group => group is { ItemType: SpecialItemType.RandomItem, ItemLevel: 12 }), "Kundun 7: box groups");
             Assert.That(kundunDropGroups.Where(group => group.ItemType == SpecialItemType.Jewel), Is.All.Matches<DropItemGroup>(group => group is { ItemLevel: null }), "Kundun 7: jewel levels");
-            Assert.That(fullOptionItem.ItemType, Is.EqualTo(SpecialItemType.FullExcellent), "Kundun 7: full-option item type");
-            Assert.That(fullOptionItem.ItemLevel, Is.EqualTo(9), "Kundun 7: full-option item level");
-            Assert.That(fullOptionItem.PossibleItems, Is.EquivalentTo(jackpotOpening.PossibleItems), "Kundun 7: full-option pool");
+            Assert.That(ancientItem.ItemLevel, Is.EqualTo(9), "Kundun 7: Ancient item level");
+            Assert.That(ancientItem.PossibleItems, Is.Empty, "Kundun 7: Ancient item pool");
         });
     }
 
