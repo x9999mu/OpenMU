@@ -809,4 +809,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddSeedMasterToNoriaUpdatePlugIn"/>.
     /// </summary>
     AddSeedMasterToNoria = 160,
+
+    /// <summary>
+    /// The version of the <see cref="ConfigureSocketCriticalDamageUpdatePlugIn"/>.
+    /// </summary>
+    ConfigureSocketCriticalDamage = 161,
 }

@@ -317,7 +317,11 @@ public class SocketSystem : InitializerBase
 
         definition.PossibleOptions.Add(this.CreateSocketOption(0, SocketSubOptionType.Lightning, Stats.ExcellentDamageBonus, AggregateType.AddRaw, 15, 20, 25, 30, 40));
         definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Lightning, Stats.ExcellentDamageChance, AggregateType.AddRaw, 0.10f, 0.11f, 0.12f, 0.13f, 0.14f));
-        definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Lightning, Stats.CriticalDamageBonus, AggregateType.AddRaw, 15, 20, 25, 30, 40));
+        // The critical damage bonus is added as flat damage on critical hits, so the original
+        // values were negligible compared to the damage of this server. The client displays the
+        // same values; they are patched in Data/Local/<Language>/SocketItem_<Language>.bmd with
+        // tools/patch_socket_option.py.
+        definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Lightning, Stats.CriticalDamageBonus, AggregateType.AddRaw, 1000, 2000, 3000, 4000, 5000));
         definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Lightning, Stats.CriticalDamageChance, AggregateType.AddRaw, 0.08f, 0.09f, 0.10f, 0.11f, 0.12f));
         return definition;
     }
