@@ -11,6 +11,8 @@ using System.IO;
 /// </summary>
 internal static class LauncherLog
 {
+    private const long MaxLogSizeInBytes = 2 * 1024 * 1024;
+
     private static readonly object SyncRoot = new();
 
     /// <summary>
@@ -45,6 +47,7 @@ internal static class LauncherLog
             lock (SyncRoot)
             {
                 Directory.CreateDirectory(LauncherPaths.RootDirectory);
+                RotateLogFile();
                 File.AppendAllText(LauncherPaths.LogFilePath, line + Environment.NewLine);
             }
         }
@@ -52,5 +55,22 @@ internal static class LauncherLog
         {
             // Logging must never break the launcher.
         }
+    }
+
+    private static void RotateLogFile()
+    {
+        var logFile = new FileInfo(LauncherPaths.LogFilePath);
+        if (!logFile.Exists || logFile.Length <= MaxLogSizeInBytes)
+        {
+            return;
+        }
+
+        var oldLogFilePath = LauncherPaths.LogFilePath + ".old";
+        if (File.Exists(oldLogFilePath))
+        {
+            File.Delete(oldLogFilePath);
+        }
+
+        File.Move(LauncherPaths.LogFilePath, oldLogFilePath);
     }
 }

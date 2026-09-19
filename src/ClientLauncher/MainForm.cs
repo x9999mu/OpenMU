@@ -388,6 +388,7 @@ public partial class MainForm : Form
 
         if (!check.UpdateRequired)
         {
+            updateService.RegisterUpdateRun();
             this.SetStatus($"Client is up to date (runtime {check.Manifest.Runtime.Version}, data {check.Manifest.Data.Id}).");
             return updateService.IsClientInstalled;
         }
@@ -400,6 +401,7 @@ public partial class MainForm : Form
 
         if (result.Succeeded)
         {
+            updateService.RegisterUpdateRun();
             this.SetStatus($"Client is up to date (runtime {check.Manifest.Runtime.Version}, data {check.Manifest.Data.Id}).");
             return true;
         }

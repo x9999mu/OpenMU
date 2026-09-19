@@ -53,6 +53,11 @@ internal sealed class InstallState
     public DateTimeOffset? LastLaunchUtc { get; set; }
 
     /// <summary>
+    /// Gets or sets the number of updates which were applied since the last cleanup.
+    /// </summary>
+    public int UpdateCount { get; set; }
+
+    /// <summary>
     /// Loads the state from the specified file.
     /// </summary>
     /// <param name="filePath">The path of the state file.</param>

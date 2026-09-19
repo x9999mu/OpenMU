@@ -117,6 +117,67 @@ internal sealed class UpdateServiceTests
     }
 
     [Test]
+    public void RegisterUpdateRun_CountsEveryRunOverSessionsAndCleansUp()
+    {
+        using var directory = new TestDirectoryHelper();
+        var installDirectory = Path.Combine(directory.Path, "client");
+        var settings = new LauncherSettings
+        {
+            InstallDirectory = installDirectory,
+            CleanupAfterUpdates = 2,
+        };
+        using var service = new UpdateService(settings, directory.Path)
+        {
+            RequiredFreeSpace = 0,
+        };
+
+        // The automatic check at startup counts, too.
+        service.RegisterUpdateRun();
+        Assert.That(service.State.UpdateCount, Is.EqualTo(1));
+
+        // The counter is stored in the state file, so it survives closing and reopening the launcher.
+        using var restartedService = new UpdateService(settings, directory.Path)
+        {
+            RequiredFreeSpace = 0,
+        };
+        Assert.That(restartedService.State.UpdateCount, Is.EqualTo(1));
+
+        var backupDirectory = LauncherPaths.GetBackupDirectory(directory.Path);
+        var oldBackup = Path.Combine(backupDirectory, "20260101-000000");
+        Directory.CreateDirectory(oldBackup);
+
+        // The second update reaches the threshold and removes the accumulated files.
+        restartedService.RegisterUpdateRun();
+
+        Assert.That(restartedService.State.UpdateCount, Is.Zero);
+        Assert.That(Directory.Exists(oldBackup), Is.False);
+    }
+
+    [Test]
+    public async Task CleanInstall_RemovesTheOlderBackups()
+    {
+        using var directory = new TestDirectoryHelper();
+        using var server = new TestHttpServer();
+        var installDirectory = Path.Combine(directory.Path, "client");
+        var runtimeBytes = CreateRuntimePackage(directory.Path, "1.0.0", "runtime v1");
+        var dataBytes = CreateDataPackage(directory.Path, "data v1", []);
+        server.AddFile(RuntimeFileName, runtimeBytes);
+        server.AddFile(DataFileName, dataBytes);
+        server.AddFile("/manifest.json", CreateManifestJson(server.BaseUrl, "1.0.0", "id1", runtimeBytes, dataBytes));
+        using var service = CreateService(directory.Path, installDirectory, server.BaseUrl);
+        await service.ApplyAsync(await service.CheckAsync(CancellationToken.None), null, CancellationToken.None);
+
+        var backupDirectory = LauncherPaths.GetBackupDirectory(directory.Path);
+        Directory.CreateDirectory(Path.Combine(backupDirectory, "20260101-000000"));
+        Directory.CreateDirectory(Path.Combine(backupDirectory, "20260102-000000"));
+
+        service.PrepareCleanInstall();
+
+        Assert.That(Directory.Exists(Path.Combine(backupDirectory, "20260101-000000")), Is.False);
+        Assert.That(Directory.Exists(Path.Combine(backupDirectory, "20260102-000000")), Is.True);
+    }
+
+    [Test]
     public async Task Apply_WhenGameIsRunning_Throws()
     {
         using var directory = new TestDirectoryHelper();

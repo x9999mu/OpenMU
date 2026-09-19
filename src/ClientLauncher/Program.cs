@@ -24,6 +24,13 @@ internal static class Program
         }
 
         var options = LauncherCommandLine.Parse(args);
+        if (options.Cleanup)
+        {
+            var freedBytes = CacheCleaner.Clean(options.DataDirectory ?? LauncherPaths.RootDirectory);
+            Console.WriteLine($"Freed {freedBytes / (1024.0 * 1024.0):0.0} MB.");
+            return;
+        }
+
         if (options.UpdateOnly)
         {
             Environment.ExitCode = HeadlessUpdateRunner.Run(options);

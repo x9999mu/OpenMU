@@ -128,6 +128,8 @@ internal sealed class UpdateService : IDisposable
     /// </summary>
     internal void PrepareCleanInstall()
     {
+        this.CleanupBackups();
+
         var configFilePath = Path.Combine(this.InstallDirectory, "config.ini");
         this._preservedConfigFile = File.Exists(configFilePath) ? File.ReadAllBytes(configFilePath) : null;
 
@@ -176,6 +178,36 @@ internal sealed class UpdateService : IDisposable
         }
 
         LauncherLog.Info($"Moved the previous installation to {backupDirectory}.");
+    }
+
+    /// <summary>
+    /// Removes all but the newest backup of a previous installation.
+    /// </summary>
+    private void CleanupBackups()
+    {
+        var backupRoot = LauncherPaths.GetBackupDirectory(this._rootDirectory);
+        try
+        {
+            if (!Directory.Exists(backupRoot))
+            {
+                return;
+            }
+
+            var oldBackups = new DirectoryInfo(backupRoot)
+                .EnumerateDirectories()
+                .OrderByDescending(directory => directory.Name, StringComparer.Ordinal)
+                .Skip(1)
+                .ToList();
+            foreach (var oldBackup in oldBackups)
+            {
+                LauncherLog.Info($"Removing the old backup {oldBackup.FullName}.");
+                oldBackup.Delete(recursive: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LauncherLog.Warn($"Could not remove the old backups: {ex.Message}");
+        }
     }
 
     private static bool IsLauncherFile(string name)
@@ -318,6 +350,26 @@ internal sealed class UpdateService : IDisposable
         this.CleanupCache(runtimeArchive, dataArchive, audioArchive);
         progress?.Report(new UpdateProgress(UpdateStage.Completed, "The client is up to date.", 1));
         LauncherLog.Info($"Update applied: runtime {manifest.Runtime.Version}, data {manifest.Data.Id}.");
+    }
+
+    /// <summary>
+    /// Counts a finished update run and cleans up the accumulated files after the configured
+    /// number of runs. Every run counts, also the automatic check when the launcher is opened
+    /// without anything to download.
+    /// The counter is stored in the state file, so it adds up over the whole usage time of the
+    /// launcher and is not reset when it is closed and opened again.
+    /// </summary>
+    internal void RegisterUpdateRun()
+    {
+        this.State.UpdateCount++;
+        if (this._settings.CleanupAfterUpdates > 0 && this.State.UpdateCount >= this._settings.CleanupAfterUpdates)
+        {
+            LauncherLog.Info($"Running the periodic cleanup after {this.State.UpdateCount} update runs.");
+            CacheCleaner.Clean(this._rootDirectory, includeLog: false);
+            this.State.UpdateCount = 0;
+        }
+
+        this.State.Save(this.StateFilePath);
     }
 
     /// <summary>

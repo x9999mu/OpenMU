@@ -59,6 +59,12 @@ public class LauncherSettings
     public string? Channel { get; set; }
 
     /// <summary>
+    /// Gets or sets the number of applied updates after which the launcher removes old archives and
+    /// backups. Zero disables the periodic cleanup.
+    /// </summary>
+    public int CleanupAfterUpdates { get; set; } = 5;
+
+    /// <summary>
     /// Gets or sets a value indicating whether the connect server address is additionally written into the
     /// windows registry, which is only required by the original game client.
     /// </summary>

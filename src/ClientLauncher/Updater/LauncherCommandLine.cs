@@ -30,6 +30,11 @@ internal sealed class LauncherCommandLine
     internal bool UpdateOnly { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether the cached archives, old backups and the log should be removed.
+    /// </summary>
+    internal bool Cleanup { get; private set; }
+
+    /// <summary>
     /// Parses the specified command line arguments.
     /// </summary>
     /// <param name="args">The command line arguments.</param>
@@ -53,6 +58,9 @@ internal sealed class LauncherCommandLine
                 case "--update-only":
                 case "--silent":
                     options.UpdateOnly = true;
+                    break;
+                case "--cleanup":
+                    options.Cleanup = true;
                     break;
                 default:
                     break;
