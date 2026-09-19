@@ -35,6 +35,12 @@ public class Launcher : ILauncher
     public string? MainExePath { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the connect server address should be written into the
+    /// windows registry. This is only required by the original game client; it needs administrator rights.
+    /// </summary>
+    public bool WriteConnectionToRegistry { get; set; }
+
+    /// <summary>
     /// Launches Mu with the set configuration.
     /// </summary>
     public void LaunchClient()
@@ -57,7 +63,7 @@ public class Launcher : ILauncher
             return;
         }
 
-        if (OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows() && this.WriteConnectionToRegistry)
         {
             using var localMachineKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
             using var key = localMachineKey.CreateSubKey(@"SOFTWARE\WebZen\Mu\Connection");
@@ -65,7 +71,7 @@ public class Launcher : ILauncher
             key.SetValue("ParameterA", this.HostEncode(ipAddress), RegistryValueKind.String);
             key.SetValue("ParameterB", this.PortEncode(ipAddress), RegistryValueKind.DWord);
         }
-        else
+        else if (!OperatingSystem.IsWindows())
         {
             if (MessageBox.Show(
                     "IP and Port couldn't be set, because the operating system is not windows. Try to launch the game client anyway?",

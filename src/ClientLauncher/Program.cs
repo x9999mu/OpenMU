@@ -14,9 +14,17 @@ internal static class Program
     /// <summary>
     /// The main entry point for the application.
     /// </summary>
+    /// <param name="args">The command line arguments.</param>
     [STAThread]
-    internal static void Main()
+    internal static void Main(string[] args)
     {
+        if (SelfUpdater.TryHandleCommandLine(args))
+        {
+            return;
+        }
+
+        SelfUpdater.CleanupStaleFiles();
+        LauncherPaths.EnsureCreated();
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new MainForm());

@@ -10,6 +10,11 @@ namespace MUnique.OpenMU.ClientLauncher;
 public class LauncherSettings
 {
     /// <summary>
+    /// The default url of the update manifest.
+    /// </summary>
+    public const string DefaultManifestUrl = "https://github.com/x9999mu/MuMain/releases/download/client-stable/manifest.json";
+
+    /// <summary>
     /// Gets the default resolutions, which are based on the open source MuMain.
     /// </summary>
     public static ClientResolution[] DefaultResolutions =>
@@ -31,6 +36,27 @@ public class LauncherSettings
     /// Gets or sets the main executable path.
     /// </summary>
     public string? MainExePath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the directory into which the client is installed or updated.
+    /// </summary>
+    public string? InstallDirectory { get; set; }
+
+    /// <summary>
+    /// Gets or sets the url of the update manifest.
+    /// </summary>
+    public string? ManifestUrl { get; set; }
+
+    /// <summary>
+    /// Gets or sets the release channel.
+    /// </summary>
+    public string? Channel { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the connect server address is additionally written into the
+    /// windows registry, which is only required by the original game client.
+    /// </summary>
+    public bool WriteConnectionToRegistry { get; set; }
 
     /// <summary>
     /// Gets or sets the configured hosts.

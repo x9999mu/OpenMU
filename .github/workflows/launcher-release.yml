@@ -1,0 +1,90 @@
+name: Release launcher
+
+# Publishes the Windows launcher as a self-contained single file release asset.
+# The client manifest of the MuMain repository points to the assets of this release,
+# see docs/ClientLauncherDesign.md.
+
+on:
+  push:
+    tags:
+      - 'launcher-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of the launcher, e.g. 1.0.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish the launcher
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish the launcher
+        run: >
+          dotnet publish src/ClientLauncher/MUnique.OpenMU.ClientLauncher.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:ci=true
+          --output out/launcher
+
+      - name: Prepare the release assets
+        shell: pwsh
+        run: |
+          Move-Item out/launcher/MUnique.OpenMU.ClientLauncher.exe out/MuMainLauncher.exe
+          $hash = (Get-FileHash out/MuMainLauncher.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  MuMainLauncher.exe" | Set-Content -NoNewline out/MuMainLauncher.exe.sha256
+
+          $fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+            (Resolve-Path out/MuMainLauncher.exe)).FileVersion
+          $size = (Get-Item out/MuMainLauncher.exe).Length
+          Write-Host ("Launcher version {0}, {1:N1} MiB" -f $fileVersion, ($size / 1MB))
+          "launcherVersion=$fileVersion" >> $env:GITHUB_OUTPUT
+        id: assets
+
+      - name: Determine the tag
+        id: tag
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $version = '${{ inputs.version }}'
+          } else {
+            $version = '${{ github.ref_name }}'.Replace('launcher-v', '')
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=launcher-v$version" >> $env:GITHUB_OUTPUT
+
+          if ($version -ne '${{ steps.assets.outputs.launcherVersion }}') {
+            Write-Warning ("The tag version {0} does not match the file version {1}; the manifest uses the tag version." -f $version, '${{ steps.assets.outputs.launcherVersion }}')
+          }
+
+      - name: Create or update the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --title "Launcher ${{ steps.tag.outputs.version }}" \
+              --notes "Windows launcher which installs and updates the MuMain client automatically. See docs/ClientLauncherDesign.md." \
+              --latest=false
+          fi
+
+          gh release upload "$tag" out/MuMainLauncher.exe out/MuMainLauncher.exe.sha256 --clobber

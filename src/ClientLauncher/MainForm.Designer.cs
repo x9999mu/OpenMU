@@ -40,6 +40,9 @@
             _addHostButton = new System.Windows.Forms.Button();
             _serversComboBox = new System.Windows.Forms.ComboBox();
             _removeHostButton = new System.Windows.Forms.Button();
+            _updateButton = new System.Windows.Forms.Button();
+            _cleanInstallButton = new System.Windows.Forms.Button();
+            _statusLabel = new System.Windows.Forms.Label();
             SuspendLayout();
             // 
             // _launchButton
@@ -164,11 +167,48 @@
             _removeHostButton.UseVisualStyleBackColor = true;
             _removeHostButton.Click += OnRemoveHostButtonClick;
             // 
+            // _updateButton
+            // 
+            _updateButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
+            _updateButton.Location = new System.Drawing.Point(107, 82);
+            _updateButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            _updateButton.Name = "_updateButton";
+            _updateButton.Size = new System.Drawing.Size(140, 27);
+            _updateButton.TabIndex = 9;
+            _updateButton.Text = "Check for updates";
+            _updateButton.UseVisualStyleBackColor = true;
+            _updateButton.Click += OnUpdateButtonClick;
+            // 
+            // _cleanInstallButton
+            // 
+            _cleanInstallButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
+            _cleanInstallButton.Location = new System.Drawing.Point(253, 82);
+            _cleanInstallButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            _cleanInstallButton.Name = "_cleanInstallButton";
+            _cleanInstallButton.Size = new System.Drawing.Size(140, 27);
+            _cleanInstallButton.TabIndex = 10;
+            _cleanInstallButton.Text = "Clean install";
+            _cleanInstallButton.UseVisualStyleBackColor = true;
+            _cleanInstallButton.Click += OnCleanInstallButtonClick;
+            // 
+            // _statusLabel
+            // 
+            _statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            _statusLabel.AutoEllipsis = true;
+            _statusLabel.Location = new System.Drawing.Point(404, 88);
+            _statusLabel.Name = "_statusLabel";
+            _statusLabel.Size = new System.Drawing.Size(247, 20);
+            _statusLabel.TabIndex = 11;
+            _statusLabel.Text = "Ready.";
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(665, 82);
+            ClientSize = new System.Drawing.Size(665, 121);
+            Controls.Add(_statusLabel);
+            Controls.Add(_cleanInstallButton);
+            Controls.Add(_updateButton);
             Controls.Add(_removeHostButton);
             Controls.Add(_serversComboBox);
             Controls.Add(_addHostButton);
@@ -182,7 +222,7 @@
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             MaximizeBox = false;
-            MaximumSize = new System.Drawing.Size(1257, 121);
+            MaximumSize = new System.Drawing.Size(1257, 160);
             Name = "MainForm";
             Text = "MU Game Client Launcher";
             ResumeLayout(false);
@@ -202,6 +242,9 @@
         private System.Windows.Forms.Button _addHostButton;
         private System.Windows.Forms.ComboBox _serversComboBox;
         private System.Windows.Forms.Button _removeHostButton;
+        private System.Windows.Forms.Button _updateButton;
+        private System.Windows.Forms.Button _cleanInstallButton;
+        private System.Windows.Forms.Label _statusLabel;
     }
 }
 

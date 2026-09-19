@@ -3,10 +3,13 @@
 // </copyright>
 
 #pragma warning disable CA1416 // This project is compiled for windows
+#pragma warning disable VSTHRD111 // The continuations must run on the UI thread of the form.
 namespace MUnique.OpenMU.ClientLauncher;
 
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Threading;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
@@ -16,11 +19,12 @@ using System.Xml.Serialization;
 public partial class MainForm : Form
 {
     private const string ConfigFileName = "launcher.config";
+    private const string AutoServerDescription = "x9999 (auto)";
 
-    /// <summary>
-    /// Gets or sets the binding list for the configured hosts.
-    /// </summary>
+    private LauncherSettings _settings = new();
     private BindingList<ServerHostSettings> _hostsBindingList = new();
+    private UpdateService? _updateService;
+    private bool _isBusy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainForm"/> class.
@@ -29,7 +33,9 @@ public partial class MainForm : Form
     {
         this.InitializeComponent();
         this.LoadOptions();
+        this._updateService = new UpdateService(this._settings);
         this.UpdateButtonStates();
+        this.Shown += this.OnFormShown;
     }
 
     private BindingList<ServerHostSettings> Hosts
@@ -44,85 +50,376 @@ public partial class MainForm : Form
 
     private BindingList<ClientResolution> Resolutions { get; set; } = new(LauncherSettings.DefaultResolutions);
 
+    /// <inheritdoc />
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        this._updateService?.Dispose();
+        this._updateService = null;
+        base.OnFormClosed(e);
+    }
+
     /// <summary>
-    /// Launches the MU Online client (main.exe) to connect to the configured address.
+    /// Launches the MU Online client (Main.exe) to connect to the configured address.
     /// </summary>
     /// <param name="sender">The sender.</param>
     /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-    private void LaunchClick(object sender, EventArgs e)
+    [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Catching all Exceptions.")]
+    private async void LaunchClick(object sender, EventArgs e)
     {
-        try
-        {
-            var selectedHost = (ServerHostSettings)this._serversComboBox.SelectedItem!;
-            var launcher = new Launcher
-            {
-                HostAddress = selectedHost.Address,
-                HostPort = selectedHost.Port,
-                MainExePath = this.MainExePathTextBox.Text,
-            };
-            launcher.LaunchClient();
-
-            this.SaveCurrentOptions();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            MessageBox.Show("Can't access Windows Registry. To use the launcher, run it as Administrator.");
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show("Error Starting MU. Path correct?" + Environment.NewLine + ex.Message);
-        }
-    }
-
-    private void LoadOptions()
-    {
-        this._serversComboBox.DataSource = this.Hosts;
-        if (!File.Exists(ConfigFileName))
+        if (this._isBusy)
         {
             return;
         }
 
         try
         {
-            var reader = new XmlSerializer(typeof(LauncherSettings));
-            using var file = new StreamReader(ConfigFileName);
-            if (reader.Deserialize(file) is LauncherSettings launcherSettings)
+            if (this._serversComboBox.SelectedItem is not ServerHostSettings selectedHost)
             {
-                this.MainExePathTextBox.Text = launcherSettings.MainExePath;
-                this.Hosts = new BindingList<ServerHostSettings>(launcherSettings.Hosts);
-                if (launcherSettings.AvailableResolutions?.Any() is true)
-                {
-                    this.Resolutions = new(launcherSettings.AvailableResolutions);
-                }
-                else
-                {
-                    this.Resolutions = new(LauncherSettings.DefaultResolutions);
-                }
+                MessageBox.Show("Please select a server.", "MU Game Client Launcher");
+                return;
             }
 
-            file.Close();
+            this._isBusy = true;
+            this.UpdateButtonStates();
+            try
+            {
+                if (!await this.EnsureUpToDateAsync())
+                {
+                    return;
+                }
+
+                this.StartClient(selectedHost);
+            }
+            finally
+            {
+                this._isBusy = false;
+                this.UpdateButtonStates();
+            }
         }
-        catch
+        catch (UnauthorizedAccessException)
         {
-            this.Hosts.Clear();
-            this.Hosts.Add(new ServerHostSettings { Description = "Local ConnectServer", Address = "localhost", Port = 44405 });
-            this.Hosts.Add(new ServerHostSettings { Description = "Local GameServer 1", Address = "localhost", Port = 55901 });
+            MessageBox.Show("Can't access Windows Registry. To use this option, run the launcher as Administrator.");
         }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("Could not start the game client.", ex);
+            MessageBox.Show("Error starting MU. Path correct?" + Environment.NewLine + ex.Message);
+        }
+    }
+
+    [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Catching all Exceptions.")]
+    private async void OnFormShown(object? sender, EventArgs e)
+    {
+        try
+        {
+            var isUpToDate = await this.EnsureUpToDateAsync();
+            if (!isUpToDate && !this._updateService!.IsClientInstalled)
+            {
+                this.SetStatus("The client is not installed yet.");
+            }
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("The update check at startup failed.", ex);
+            this.SetStatus("Could not check for updates.");
+        }
+    }
+
+    [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Catching all Exceptions.")]
+    private async void OnUpdateButtonClick(object sender, EventArgs e)
+    {
+        if (this._isBusy)
+        {
+            return;
+        }
+
+        try
+        {
+            this._isBusy = true;
+            this.UpdateButtonStates();
+            try
+            {
+                await this.EnsureUpToDateAsync();
+            }
+            finally
+            {
+                this._isBusy = false;
+                this.UpdateButtonStates();
+            }
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("The manual update check failed.", ex);
+        }
+    }
+
+    [SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Catching all Exceptions.")]
+    private async void OnCleanInstallButtonClick(object sender, EventArgs e)
+    {
+        if (this._isBusy)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            "The client will be downloaded again and all local client files will be replaced." + Environment.NewLine +
+            "Your configuration file (config.ini) is kept." + Environment.NewLine + Environment.NewLine +
+            "Do you want to continue?",
+            "Clean install",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+        if (result != DialogResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            this._isBusy = true;
+            this.UpdateButtonStates();
+            try
+            {
+                this.SyncSettingsFromUi();
+                this._updateService!.PrepareCleanInstall();
+                await this.EnsureUpToDateAsync();
+            }
+            finally
+            {
+                this._isBusy = false;
+                this.UpdateButtonStates();
+            }
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Error("The clean install failed.", ex);
+            MessageBox.Show("The clean install failed:" + Environment.NewLine + ex.Message);
+        }
+    }
+
+    private void LoadOptions()
+    {
+        this._serversComboBox.DataSource = this.Hosts;
+        this._settings = new LauncherSettings();
+        if (File.Exists(ConfigFileName))
+        {
+            try
+            {
+                var reader = new XmlSerializer(typeof(LauncherSettings));
+                using var file = new StreamReader(ConfigFileName);
+                if (reader.Deserialize(file) is LauncherSettings launcherSettings)
+                {
+                    this._settings = launcherSettings;
+                    this.Hosts = new BindingList<ServerHostSettings>(launcherSettings.Hosts);
+                    this.Resolutions = launcherSettings.AvailableResolutions?.Any() is true
+                        ? new BindingList<ClientResolution>(launcherSettings.AvailableResolutions)
+                        : new BindingList<ClientResolution>(LauncherSettings.DefaultResolutions);
+                }
+            }
+            catch (Exception ex)
+            {
+                LauncherLog.Warn($"Could not read '{ConfigFileName}': {ex.Message}");
+                this.ResetHosts();
+            }
+        }
+        else
+        {
+            this.ResetHosts();
+        }
+
+        if (this._settings.Hosts.Count == 0)
+        {
+            this.ResetHosts();
+        }
+
+        this._settings.ManifestUrl ??= LauncherSettings.DefaultManifestUrl;
+        this._settings.Channel ??= "stable";
+        this._settings.InstallDirectory ??= LauncherPaths.DefaultInstallDirectory;
+        this._settings.MainExePath ??= Path.Combine(this._settings.InstallDirectory, "Main.exe");
+        this.MainExePathTextBox.Text = this._settings.MainExePath;
+        this.SetStatus($"Launcher {UpdateService.LauncherVersion}");
+    }
+
+    private void ResetHosts()
+    {
+        this.Hosts = new BindingList<ServerHostSettings>
+        {
+            new() { Description = "Local ConnectServer", Address = "localhost", Port = 44405 },
+            new() { Description = "Local GameServer 1", Address = "localhost", Port = 55901 },
+        };
     }
 
     private void SaveCurrentOptions()
     {
-        var settings = new LauncherSettings
+        this.SyncSettingsFromUi();
+        try
         {
-            Hosts = this._hostsBindingList.ToList(),
-            MainExePath = this.MainExePathTextBox.Text,
-            AvailableResolutions = this.Resolutions.ToList(),
+            var writer = new XmlSerializer(typeof(LauncherSettings));
+            using var file = File.Create(ConfigFileName);
+            writer.Serialize(file, this._settings);
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Warn($"Could not save '{ConfigFileName}': {ex.Message}");
+        }
+    }
+
+    private void SyncSettingsFromUi()
+    {
+        this._settings.Hosts = this._hostsBindingList.ToList();
+        this._settings.MainExePath = this.MainExePathTextBox.Text;
+        if (!string.IsNullOrWhiteSpace(this._settings.MainExePath))
+        {
+            this._settings.InstallDirectory = Path.GetDirectoryName(this._settings.MainExePath);
+        }
+
+        this._settings.AvailableResolutions = this.Resolutions.ToList();
+    }
+
+    /// <summary>
+    /// Ensures that the client is installed and up to date.
+    /// </summary>
+    /// <returns><c>true</c> if the client can be started.</returns>
+    private async Task<bool> EnsureUpToDateAsync()
+    {
+        this.SyncSettingsFromUi();
+        var updateService = this._updateService!;
+
+        UpdateCheckResult check;
+        this.SetStatus("Checking for updates...");
+        try
+        {
+            check = await updateService.CheckAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            LauncherLog.Warn($"Could not check for updates: {ex.Message}");
+            this.SetStatus("Could not check for updates.");
+            if (updateService.IsClientInstalled)
+            {
+                return true;
+            }
+
+            MessageBox.Show(
+                "The client is not installed and the update information could not be loaded:" + Environment.NewLine +
+                ex.Message + Environment.NewLine + Environment.NewLine +
+                "Please check your internet connection and try again.",
+                "Update",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return false;
+        }
+
+        this.ApplyServerSettings(check.Manifest);
+
+        if (await this.TryRunSelfUpdateAsync(updateService, check.Manifest))
+        {
+            return false;
+        }
+
+        if (!check.UpdateRequired)
+        {
+            this.SetStatus($"Client is up to date (runtime {check.Manifest.Runtime.Version}, data {check.Manifest.Data.Id}).");
+            return updateService.IsClientInstalled;
+        }
+
+        this.SetStatus(check.IsClientInstalled ? "Installing update..." : "Installing the game client...");
+        var (succeeded, errorMessage) = ProgressForm.Run(
+            this,
+            check.IsClientInstalled ? "Updating the game client" : "Installing the game client",
+            (progress, cancellationToken) => updateService.ApplyAsync(check, progress, cancellationToken));
+
+        if (succeeded)
+        {
+            this.SetStatus($"Client is up to date (runtime {check.Manifest.Runtime.Version}, data {check.Manifest.Data.Id}).");
+            return true;
+        }
+
+        this.SetStatus("The update failed.");
+        if (!updateService.IsClientInstalled)
+        {
+            MessageBox.Show(
+                "The game client could not be installed:" + Environment.NewLine + errorMessage,
+                "Update",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return false;
+        }
+
+        var continueWithoutUpdate = MessageBox.Show(
+            "The update failed:" + Environment.NewLine + errorMessage + Environment.NewLine + Environment.NewLine +
+            "Do you want to start the installed version anyway?",
+            "Update",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+        return continueWithoutUpdate == DialogResult.Yes;
+    }
+
+    private async Task<bool> TryRunSelfUpdateAsync(UpdateService updateService, UpdateManifest manifest)
+    {
+        if (manifest.Launcher is null)
+        {
+            return false;
+        }
+
+        var selfUpdateStarted = false;
+        var (succeeded, errorMessage) = ProgressForm.Run(
+            this,
+            "Updating the launcher",
+            async (progress, cancellationToken) =>
+            {
+                selfUpdateStarted = await updateService.TrySelfUpdateAsync(manifest, progress, cancellationToken);
+            });
+
+        if (selfUpdateStarted)
+        {
+            LauncherLog.Info("The launcher restarts itself for the self update.");
+            this.Close();
+            return true;
+        }
+
+        if (!succeeded && errorMessage is not null)
+        {
+            LauncherLog.Warn($"The launcher update failed: {errorMessage}");
+        }
+
+        return false;
+    }
+
+    private void ApplyServerSettings(UpdateManifest manifest)
+    {
+        if (manifest.Server is not { } server || string.IsNullOrWhiteSpace(server.Host))
+        {
+            return;
+        }
+
+        var existing = this._hostsBindingList.FirstOrDefault(
+            host => string.Equals(host.Description, AutoServerDescription, StringComparison.Ordinal));
+        if (existing is null)
+        {
+            existing = new ServerHostSettings { Description = AutoServerDescription };
+            this._hostsBindingList.Add(existing);
+        }
+
+        existing.Address = server.Host;
+        existing.Port = server.Port > 0 ? server.Port : 44405;
+        this._serversComboBox.SelectedItem = existing;
+        this.SaveCurrentOptions();
+    }
+
+    private void StartClient(ServerHostSettings selectedHost)
+    {
+        this.SyncSettingsFromUi();
+        var launcher = new Launcher
+        {
+            HostAddress = selectedHost.Address,
+            HostPort = selectedHost.Port,
+            MainExePath = this._settings.MainExePath,
+            WriteConnectionToRegistry = this._settings.WriteConnectionToRegistry,
         };
 
-        var writer = new XmlSerializer(typeof(LauncherSettings));
-        using var file = File.Create(ConfigFileName);
-        writer.Serialize(file, settings);
-        file.Close();
+        launcher.LaunchClient();
+        this._updateService?.RememberLaunch();
+        this.SaveCurrentOptions();
     }
 
     private void SearchMainExeButtonClick(object sender, EventArgs e)
@@ -131,6 +428,7 @@ public partial class MainForm : Form
         if (dialogResult == DialogResult.OK)
         {
             this.MainExePathTextBox.Text = this.openFileDialog.FileName;
+            this.SyncSettingsFromUi();
         }
     }
 
@@ -187,11 +485,18 @@ public partial class MainForm : Form
         this.UpdateButtonStates();
     }
 
+    private void SetStatus(string message)
+    {
+        this._statusLabel.Text = message;
+    }
+
     private void UpdateButtonStates()
     {
         var isServerSelected = this._serversComboBox.SelectedItem is ServerHostSettings;
-        this._editHostButton.Enabled = isServerSelected;
-        this._removeHostButton.Enabled = isServerSelected;
-        this._launchButton.Enabled = isServerSelected;
+        this._editHostButton.Enabled = isServerSelected && !this._isBusy;
+        this._removeHostButton.Enabled = isServerSelected && !this._isBusy;
+        this._launchButton.Enabled = isServerSelected && !this._isBusy;
+        this._updateButton.Enabled = !this._isBusy;
+        this._cleanInstallButton.Enabled = !this._isBusy;
     }
 }
