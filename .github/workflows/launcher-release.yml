@@ -9,10 +9,6 @@ on:
     tags:
       - 'launcher-v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version of the launcher, e.g. 1.0.0'
-        required: true
 
 permissions:
   contents: write
@@ -50,28 +46,29 @@ jobs:
           $hash = (Get-FileHash out/MuMainLauncher.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  MuMainLauncher.exe" | Set-Content -NoNewline out/MuMainLauncher.exe.sha256
 
-          $fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
-            (Resolve-Path out/MuMainLauncher.exe)).FileVersion
+          # The launcher compares this version with the one of the client manifest, so the
+          # release tag has to use the version of the assembly (see src/SharedAssemblyInfo.cs).
+          $exePath = (Resolve-Path out/MuMainLauncher.exe).Path
+          $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exePath).FileVersion
+          if (-not $version) {
+            $version = [System.Reflection.AssemblyName]::GetAssemblyName($exePath).Version.ToString()
+          }
+
           $size = (Get-Item out/MuMainLauncher.exe).Length
-          Write-Host ("Launcher version {0}, {1:N1} MiB" -f $fileVersion, ($size / 1MB))
-          "launcherVersion=$fileVersion" >> $env:GITHUB_OUTPUT
+          Write-Host ("Launcher version {0}, {1:N1} MiB" -f $version, ($size / 1MB))
+          "launcherVersion=$version" >> $env:GITHUB_OUTPUT
         id: assets
 
       - name: Determine the tag
         id: tag
         shell: pwsh
         run: |
-          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
-            $version = '${{ inputs.version }}'
-          } else {
-            $version = '${{ github.ref_name }}'.Replace('launcher-v', '')
-          }
-
+          $version = '${{ steps.assets.outputs.launcherVersion }}'
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=launcher-v$version" >> $env:GITHUB_OUTPUT
 
-          if ($version -ne '${{ steps.assets.outputs.launcherVersion }}') {
-            Write-Warning ("The tag version {0} does not match the file version {1}; the manifest uses the tag version." -f $version, '${{ steps.assets.outputs.launcherVersion }}')
+          if ('${{ github.event_name }}' -eq 'push' -and '${{ github.ref_name }}' -ne "launcher-v$version") {
+            Write-Warning ("The pushed tag {0} does not match the assembly version {1}; the release is published as launcher-v{1}." -f '${{ github.ref_name }}', '$version')
           }
 
       - name: Create or update the release

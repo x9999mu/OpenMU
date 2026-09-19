@@ -210,6 +210,10 @@ Ghi chú:
 `develop-latest` mà repo client đang dùng. Release data đã được đánh dấu `--latest=false`,
 nên `releases/latest` vẫn luôn trỏ về bản runtime mới nhất.
 
+Version của launcher lấy từ assembly (`src/SharedAssemblyInfo.cs`), nên tag release cũng
+dùng đúng version đó (`launcher-v0.9.10.0`). Muốn phát hành launcher mới thì bump version
+của repo (ví dụ bằng `set-projectVersion.ps1`) trước khi chạy workflow.
+
 ### 5.5 Máy Lenovo
 
 Không cần thay đổi gì cho việc phân phối file:
