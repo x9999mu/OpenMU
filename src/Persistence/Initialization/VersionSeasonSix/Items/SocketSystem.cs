@@ -282,11 +282,16 @@ public class SocketSystem : InitializerBase
         definition.Name = "Socket Options (Fire)";
         definition.MaximumOptionsPerItem = 1;
 
-        definition.PossibleOptions.Add(this.CreateRelatedSocketOption(0, SocketSubOptionType.Fire, Stats.BaseDamageBonus, Stats.TotalLevel, 1f / 20f, 1f / 19f, 1f / 18f, 1f / 17f, 1f / 14f));
+        // The values of the level based option are divisors (damage = level / divisor), so it can
+        // not be scaled by a plain factor; the smallest sensible divisors are used instead.
+        // The other damage options are scaled by 30 compared to the original data, to make them
+        // relevant on this server. The client displays the same values; they are patched in
+        // Data/Local/<Language>/SocketItem_<Language>.bmd with tools/patch_socket_option.py.
+        definition.PossibleOptions.Add(this.CreateRelatedSocketOption(0, SocketSubOptionType.Fire, Stats.BaseDamageBonus, Stats.TotalLevel, 1f / 5f, 1f / 4f, 1f / 3f, 1f / 2f, 1f / 1f));
         definition.PossibleOptions.Add(this.CreateSocketOption(1, SocketSubOptionType.Fire, Stats.AttackSpeedAny, AggregateType.AddRaw, 7, 8, 9, 10, 11));
-        definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Fire, Stats.BaseMaxDamageBonus, AggregateType.AddRaw, 30, 32, 35, 40, 50));
-        definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Fire, Stats.BaseMinDamageBonus, AggregateType.AddRaw, 20, 22, 25, 30, 35));
-        definition.PossibleOptions.Add(this.CreateSocketOption(4, SocketSubOptionType.Fire, Stats.BaseDamageBonus, AggregateType.AddRaw, 20, 22, 25, 30, 35));
+        definition.PossibleOptions.Add(this.CreateSocketOption(2, SocketSubOptionType.Fire, Stats.BaseMaxDamageBonus, AggregateType.AddRaw, 900, 960, 1050, 1200, 1500));
+        definition.PossibleOptions.Add(this.CreateSocketOption(3, SocketSubOptionType.Fire, Stats.BaseMinDamageBonus, AggregateType.AddRaw, 600, 660, 750, 900, 1050));
+        definition.PossibleOptions.Add(this.CreateSocketOption(4, SocketSubOptionType.Fire, Stats.BaseDamageBonus, AggregateType.AddRaw, 600, 660, 750, 900, 1050));
         definition.PossibleOptions.Add(this.CreateSocketOption(5, SocketSubOptionType.Fire, Stats.AbilityUsageReduction, AggregateType.AddRaw, 0.40f, 0.41f, 0.42f, 0.43f, 0.44f));
         return definition;
     }

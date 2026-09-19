@@ -814,4 +814,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureSocketCriticalDamageUpdatePlugIn"/>.
     /// </summary>
     ConfigureSocketCriticalDamage = 161,
+
+    /// <summary>
+    /// The version of the <see cref="ConfigureFireSocketOptionsUpdatePlugIn"/>.
+    /// </summary>
+    ConfigureFireSocketOptions = 162,
 }
