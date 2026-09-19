@@ -784,4 +784,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureKalimaSevenBossDropsUpdatePlugIn"/>.
     /// </summary>
     ConfigureKalimaSevenBossDrops = 155,
+
+    /// <summary>
+    /// The version of the <see cref="RepairSocketSphereLevelsUpdatePlugIn"/>.
+    /// </summary>
+    RepairSocketSphereLevels = 156,
 }

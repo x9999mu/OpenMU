@@ -82,7 +82,14 @@ public class MountSeedSphereCrafting : SimpleItemCraftingHandler
             .SelectMany(o => o.PossibleOptions)
             .Single(o => o.OptionType == ItemOptionTypes.SocketOption
                          && o.Number == seedSphere.Level);
-        sphereOption.Level = seedSphere.Level;
+
+        // The level of the seed sphere item encodes the kind of the option (see SeedSphereCrafting),
+        // while the level of the sphere (1..5) is encoded in the item definition number.
+        // The client expects the option link level to be the sphere level to calculate the option value.
+        const int seedSphereNumberStart = 100;
+        const int seedTypes = 6;
+        var sphereLevel = ((seedSphere.Definition.Number - seedSphereNumberStart) / seedTypes) + 1;
+        sphereOption.Level = (byte)sphereLevel;
         sphereOption.Index = socketSlot;
         socketItem.ItemOptions.Add(sphereOption);
 
