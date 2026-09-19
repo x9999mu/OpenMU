@@ -876,7 +876,7 @@ internal class TestInitializationWithEfCore
         using var context = contextProvider.CreateNewContext();
         var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
         var kundunSeven = configuration.Monsters.Single(monster => monster.Number == 275);
-        var previousGroup = kundunSeven.DropItemGroups.Single(group => group.ItemType == SpecialItemType.Ancient);
+        var previousGroup = kundunSeven.DropItemGroups.Single(group => group.ItemType == SpecialItemType.FullAncient);
         previousGroup.ItemType = SpecialItemType.FullExcellent;
         previousGroup.PossibleItems.Add(configuration.Items.First(item => item.DropsFromMonsters));
 
@@ -887,6 +887,40 @@ internal class TestInitializationWithEfCore
 
         Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount), "the second application must not add groups");
         AssertIcarusAndKalimaSevenJewelDrops(configuration);
+    }
+
+    /// <summary>
+    /// Tests that the full Ancient loot update repairs both boss and GM Gift outcomes idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestConfigureFullAncientLootUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var bossAncient = configuration.Monsters.Single(monster => monster.Number == 275).DropItemGroups.Single(group => group.ItemType == SpecialItemType.FullAncient);
+        bossAncient.ItemType = SpecialItemType.Ancient;
+        var gift = configuration.Items.Single(item => item is { Group: 14, Number: 52 });
+        var giftAncient = gift.DropItems.Single(group => group.ItemType == SpecialItemType.FullAncient);
+        giftAncient.ItemType = SpecialItemType.Ancient;
+        giftAncient.Chance = 0.52;
+        gift.DropItems.Single(group => group.DropEffect == ItemDropEffect.Fireworks).Chance = 0.10;
+
+        var update = new ConfigureFullAncientLootUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        var dropGroupCount = configuration.DropItemGroups.Count;
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(configuration.DropItemGroups, Has.Count.EqualTo(dropGroupCount));
+            Assert.That(configuration.Monsters.Single(monster => monster.Number == 275).DropItemGroups.Single(group => group.ItemType == SpecialItemType.FullAncient), Is.Not.Null);
+            Assert.That(gift.DropItems.Single(group => group.ItemType == SpecialItemType.FullAncient).Chance, Is.EqualTo(0.59));
+            Assert.That(gift.DropItems.Single(group => group.DropEffect == ItemDropEffect.Fireworks).Chance, Is.EqualTo(0.03));
+        });
     }
 
     [Test]
@@ -1000,7 +1034,7 @@ internal class TestInitializationWithEfCore
             .Select(value => DropGroupId(9_999, kundun7.Number, (byte)value))
             .ToList();
         var gachaBossDropGroupIds = new short[] { 4, 5, 6 }.Select(number => DropGroupId(9_999, number)).ToList();
-        var ancientItem = kundunDropGroups.Single(group => group.ItemType == SpecialItemType.Ancient);
+        var ancientItem = kundunDropGroups.Single(group => group.ItemType == SpecialItemType.FullAncient);
         Assert.Multiple(() =>
         {
             Assert.That(kundun7.NumberOfMaximumItemDrops, Is.EqualTo(9), "Kundun 7: max drops");
@@ -1214,13 +1248,13 @@ internal class TestInitializationWithEfCore
         Assert.Multiple(() =>
         {
             Assert.That(drops, Has.Count.EqualTo(5));
-            Assert.That(drops.Select(group => group.Chance), Is.EquivalentTo(new[] { 0.30, 0.05, 0.03, 0.10, 0.52 }));
+            Assert.That(drops.Select(group => group.Chance), Is.EquivalentTo(new[] { 0.30, 0.05, 0.03, 0.03, 0.59 }));
             Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullExcellent).MinimumLevel, Is.EqualTo(4));
             Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullExcellent).MaximumLevel, Is.EqualTo(4));
-            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.Ancient).MinimumLevel, Is.EqualTo(9));
-            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.Ancient).MaximumLevel, Is.EqualTo(9));
-            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.Ancient).PossibleItems, Is.Empty);
-            Assert.That(drops.Single(group => group.DropEffect == ItemDropEffect.Fireworks).Chance, Is.EqualTo(0.10));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullAncient).MinimumLevel, Is.EqualTo(9));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullAncient).MaximumLevel, Is.EqualTo(9));
+            Assert.That(drops.Single(group => group.ItemType == SpecialItemType.FullAncient).PossibleItems, Is.Empty);
+            Assert.That(drops.Single(group => group.DropEffect == ItemDropEffect.Fireworks).Chance, Is.EqualTo(0.03));
             Assert.That(drops.Single(group => group.ItemAmount == 2).Chance, Is.EqualTo(0.03));
             Assert.That(drops.Single(group => group.ItemAmount == 2).PossibleItems, Is.EqualTo(new[] { gift }));
             Assert.That(drops.Single(group => group.ItemAmount == 1 && group.PossibleItems.Contains(gift)).Chance, Is.EqualTo(0.30));

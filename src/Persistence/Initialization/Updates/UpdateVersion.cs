@@ -799,4 +799,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureGmGiftLootUpdatePlugIn"/>.
     /// </summary>
     ConfigureGmGiftLoot = 158,
+
+    /// <summary>
+    /// The version of the <see cref="ConfigureFullAncientLootUpdatePlugIn"/>.
+    /// </summary>
+    ConfigureFullAncientLoot = 159,
 }

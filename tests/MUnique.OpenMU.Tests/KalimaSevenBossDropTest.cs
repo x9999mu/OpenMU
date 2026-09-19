@@ -20,7 +20,7 @@ public class KalimaSevenBossDropTest
 {
     /// <summary>
     /// Tests that the Illusion of Kundun 7 drops its nine guaranteed items on every kill, including one
-    /// random Ancient Set item.
+    /// full Ancient Set item with every supported excellent option and Luck.
     /// </summary>
     [Test]
     public async ValueTask IllusionOfKundunSevenDropsNineGuaranteedItemsAsync()
@@ -30,7 +30,7 @@ public class KalimaSevenBossDropTest
         using var context = provider.CreateNewConfigurationContext();
         var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
         var boss = configuration.Monsters.Single(monster => monster.Number == 275);
-        var ancientGroup = boss.DropItemGroups.Single(group => group.ItemType == SpecialItemType.Ancient);
+        var ancientGroup = boss.DropItemGroups.Single(group => group.ItemType == SpecialItemType.FullAncient);
         var generator = new DefaultDropGenerator(configuration, Rand.GetRandomizer());
         var player = await PlayerTestHelper.CreatePlayerAsync().ConfigureAwait(false);
 
@@ -53,6 +53,9 @@ public class KalimaSevenBossDropTest
                 Assert.That(ancientItem!.Level, Is.LessThanOrEqualTo(9), "Ancient Set item configured level");
                 Assert.That(ancientItem.ItemSetGroups, Has.Count.GreaterThanOrEqualTo(1), "Ancient Set membership");
                 Assert.That(ancientItem.ItemSetGroups.Any(link => link.ItemSetGroup?.Options?.PossibleOptions.Any(option => option.OptionType == ItemOptionTypes.AncientOption) == true), Is.True, "Ancient Set option");
+                Assert.That(ancientItem.ItemOptions.Count(link => link.ItemOption?.OptionType == ItemOptionTypes.Excellent), Is.EqualTo(ancientItem.Definition!.PossibleItemOptions.SelectMany(options => options.PossibleOptions).Count(option => option.OptionType == ItemOptionTypes.Excellent)), "all Excellent options");
+                Assert.That(ancientItem.ItemOptions.Count(link => link.ItemOption?.OptionType == ItemOptionTypes.Luck), Is.EqualTo(1), "Luck");
+                Assert.That(ancientItem.ItemOptions.Single(link => link.ItemOption?.OptionType == ItemOptionTypes.Option).Level, Is.EqualTo(4), "normal option");
             });
         }
     }

@@ -459,20 +459,19 @@ internal static class InstantServerConfiguration
 
         var fireworks = EnsureGmGiftDropGroup(context, gift, 3);
         fireworks.SourceItemLevel = 0;
-        fireworks.ItemType = SpecialItemType.None;
-        fireworks.Chance = 0.10;
+        fireworks.Chance = 0.03;
         fireworks.Description = "GM Gift Fireworks";
         fireworks.DropEffect = ItemDropEffect.Fireworks;
         fireworks.PossibleItems.Clear();
         fireworks.ItemAmount = 1;
         var ancient = EnsureGmGiftDropGroup(context, gift, 4);
         ancient.SourceItemLevel = 0;
-        ancient.ItemType = SpecialItemType.Ancient;
-        ancient.Chance = 0.52;
+        ancient.ItemType = SpecialItemType.FullAncient;
+        ancient.Chance = 0.59;
         ancient.MinimumLevel = 9;
         ancient.MaximumLevel = 9;
         ancient.ItemLevel = 9;
-        ancient.Description = "Random Ancient Set item (GM Gift)";
+        ancient.Description = "Full Ancient Set item (GM Gift)";
         ancient.DropEffect = ItemDropEffect.FanfareSound;
         ancient.PossibleItems.Clear();
         ancient.ItemAmount = 1;
@@ -622,7 +621,7 @@ internal static class InstantServerConfiguration
 
     /// <summary>
     /// Configures the loot of the Illusion of Kundun 7: three GM Gifts, three Box of Kundun +5, one Jewel
-    /// of Harmony, one Jewel of Guardian and one random Ancient Set item.
+    /// of Harmony, one Jewel of Guardian and one full Ancient Set item.
     /// </summary>
     /// <param name="context">The persistence context.</param>
     /// <param name="gameConfiguration">The game configuration.</param>
@@ -660,9 +659,9 @@ internal static class InstantServerConfiguration
         }
 
         var ancientItem = EnsureDropGroup(context, gameConfiguration, ancientItemId);
-        ancientItem.Description = $"{boss.Designation}: random Ancient Set item";
+        ancientItem.Description = $"{boss.Designation}: full Ancient Set item";
         ancientItem.Chance = 1.0;
-        ancientItem.ItemType = SpecialItemType.Ancient;
+        ancientItem.ItemType = SpecialItemType.FullAncient;
         ancientItem.ItemLevel = 9;
         ancientItem.MinimumMonsterLevel = null;
         ancientItem.MaximumMonsterLevel = null;

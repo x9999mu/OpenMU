@@ -57,6 +57,11 @@ public enum SpecialItemType
     /// </summary>
     ExcellentWithLuck,
 
+    /// <summary>
+    /// An Ancient Set item with every supported excellent option and Luck.
+    /// </summary>
+    FullAncient,
+
 }
 
 /// <summary>

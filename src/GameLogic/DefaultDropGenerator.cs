@@ -33,6 +33,7 @@ public class DefaultDropGenerator : IDropGenerator
     private readonly AsyncLock _lock = new();
     private readonly IRandomizer _randomizer;
     private readonly IList<ItemDefinition> _ancientItems;
+    private readonly IList<ItemDefinition> _fullAncientItems;
     private readonly IList<ItemDefinition> _droppableItems;
     private readonly IList<ItemDefinition>?[] _droppableItemsPerMonsterLevel = new IList<ItemDefinition>?[byte.MaxValue + 1];
     private readonly IList<ItemDefinition>?[] _droppableSocketItemsPerMonsterLevel = new IList<ItemDefinition>?[byte.MaxValue + 1];
@@ -57,6 +58,14 @@ public class DefaultDropGenerator : IDropGenerator
             i => i.PossibleItemSetGroups.Any(
                 g => g.Options?.PossibleOptions.Any(
                     o => object.Equals(o.OptionType, ItemOptionTypes.AncientOption)) ?? false))
+            .ToList();
+        this._fullAncientItems = this._ancientItems.Where(item => item.PossibleItemOptions
+            .SelectMany(options => options.PossibleOptions)
+            .Any(option => option.OptionType == ItemOptionTypes.Excellent)
+            && item.PossibleItemOptions.SelectMany(options => options.PossibleOptions)
+                .Any(option => option.OptionType == ItemOptionTypes.Luck)
+            && item.PossibleItemOptions.SelectMany(options => options.PossibleOptions)
+                .Any(option => option.OptionType == ItemOptionTypes.Option))
             .ToList();
     }
 
@@ -219,7 +228,6 @@ public class DefaultDropGenerator : IDropGenerator
         }
 
         item.HasSkill = item.CanHaveSkill(); // every excellent item got skill
-
         this.AddRandomExcOptions(item);
         item.Durability = item.GetMaximumDurabilityOfOnePiece();
         return item;
@@ -238,9 +246,23 @@ public class DefaultDropGenerator : IDropGenerator
         }
 
         item.HasSkill = item.CanHaveSkill(); // every ancient item got skill
-
         this.ApplyRandomAncientOption(item);
         item.Durability = item.GetMaximumDurabilityOfOnePiece();
+        return item;
+    }
+
+    /// <summary>
+    /// Gets a random Ancient Set item with every supported excellent option, Luck and normal option.
+    /// </summary>
+    /// <returns>A random full Ancient Set item.</returns>
+    protected Item? GenerateFullAncient()
+    {
+        var item = this.GenerateFullExcellentItem(possibleItems: this._fullAncientItems);
+        if (item is not null)
+        {
+            this.ApplyRandomAncientOption(item);
+        }
+
         return item;
     }
 
@@ -412,6 +434,7 @@ public class DefaultDropGenerator : IDropGenerator
         var item = selectedGroup.ItemType switch
         {
             SpecialItemType.Ancient => this.GenerateRandomAncient(),
+            SpecialItemType.FullAncient => this.GenerateFullAncient(),
             SpecialItemType.Excellent => this.GenerateRandomExcellentItem(possibleItems: possibleItems),
             SpecialItemType.ExcellentWithLuck => this.GenerateRandomExcellentItemWithLuck(possibleItems: possibleItems),
             SpecialItemType.FullExcellent => this.GenerateFullExcellentItem(possibleItems: possibleItems),
@@ -442,7 +465,7 @@ public class DefaultDropGenerator : IDropGenerator
         }
 
         item.Level = Math.Min(item.Level, item.Definition!.MaximumItemLevel);
-        if (selectedGroup.ItemType == SpecialItemType.FullExcellent)
+        if (selectedGroup.ItemType is SpecialItemType.FullExcellent or SpecialItemType.FullAncient)
         {
             item.Durability = item.GetMaximumDurabilityOfOnePiece();
         }
@@ -626,9 +649,10 @@ public class DefaultDropGenerator : IDropGenerator
         }
 
         var item = this.GenerateSpecialItem(monster, selectedGroup);
-        if (item is not null && selectedGroup.ItemType == SpecialItemType.Ancient && selectedGroup.ItemLevel is { } itemLevel)
+        if (item is not null && selectedGroup.ItemType is (SpecialItemType.Ancient or SpecialItemType.FullAncient) && selectedGroup.ItemLevel is { } itemLevel)
         {
             item.Level = Math.Min(itemLevel, item.Definition!.MaximumItemLevel);
+            item.Durability = item.GetMaximumDurabilityOfOnePiece();
         }
 
         if (item is null && selectedGroup.ItemType == SpecialItemType.Money)
@@ -664,6 +688,7 @@ public class DefaultDropGenerator : IDropGenerator
         return selectedGroup.ItemType switch
         {
             SpecialItemType.Ancient => this.GenerateRandomAncient(),
+            SpecialItemType.FullAncient => this.GenerateFullAncient(),
             SpecialItemType.Excellent => this.GenerateRandomExcellentItem(monsterLevel),
             SpecialItemType.ExcellentWithLuck => this.GenerateRandomExcellentItemWithLuck(monsterLevel),
             SpecialItemType.FullExcellent => this.GenerateFullExcellentItem(monsterLevel),

@@ -359,10 +359,10 @@ GM Gift không còn mở trực tiếp trang bị Full Excellent. Khi mở GM Gi
 | 1 Ring/Pendant Full Excellent, level +4 | 5% |
 | 1 GM Gift box | 30% |
 | 2 GM Gift box | 3% |
-| Fireworks, không rơi item | 10% |
-| 1 Ancient Set item ngẫu nhiên | 52% |
+| Fireworks, không rơi item | 3% |
+| 1 Ancient Set item Full Excellent + Luck ngẫu nhiên | 59% |
 
-Ancient Set item sử dụng cùng pool Ancient Set với phần thưởng riêng của Illusion of Kundun 7 và có Ancient Set option. GM Gift x2 tạo ra **hai item GM Gift riêng biệt**, không phải một item có số lượng 2.
+Ancient Set item sử dụng cùng pool Ancient Set với phần thưởng riêng của Illusion of Kundun 7. Item nhận toàn bộ Excellent option mà item hỗ trợ, Luck, normal option +4 nếu hỗ trợ và Ancient Set option. GM Gift x2 tạo ra **hai item GM Gift riêng biệt**, không phải một item có số lượng 2.
 
 Ring/Pendant Full Excellent được chọn trong các item:
 

@@ -185,11 +185,17 @@ public class DropGeneratorTest
         Assert.That(jewelryItem, Is.Not.Null);
         Assert.That(jewelryItem!.Level, Is.EqualTo(4));
 
-        var ancientOpening = gmGift.DropItems.Single(group => group.ItemType == SpecialItemType.Ancient);
+        var ancientOpening = gmGift.DropItems.Single(group => group.ItemType == SpecialItemType.FullAncient);
         var (ancientItems, _, _) = itemGenerator.GenerateItemDrops(new[] { ancientOpening });
         var ancientItem = ancientItems.Single();
-        Assert.That(ancientItem.Level, Is.EqualTo(9));
-        Assert.That(ancientItem.ItemSetGroups, Is.Not.Empty);
+        Assert.Multiple(() =>
+        {
+            Assert.That(ancientItem.Level, Is.EqualTo(9));
+            Assert.That(ancientItem.ItemSetGroups, Is.Not.Empty);
+            Assert.That(ancientItem.ItemOptions.Count(link => link.ItemOption?.OptionType == ItemOptionTypes.Excellent), Is.EqualTo(ancientItem.Definition!.PossibleItemOptions.SelectMany(options => options.PossibleOptions).Count(option => option.OptionType == ItemOptionTypes.Excellent)));
+            Assert.That(ancientItem.ItemOptions.Count(link => link.ItemOption?.OptionType == ItemOptionTypes.Luck), Is.EqualTo(1));
+            Assert.That(ancientItem.ItemOptions.Single(link => link.ItemOption?.OptionType == ItemOptionTypes.Option).Level, Is.EqualTo(4));
+        });
 
         var fireworksOpening = gmGift.DropItems.Single(group => group.DropEffect == ItemDropEffect.Fireworks);
         var (fireworksItems, _, fireworksEffect) = itemGenerator.GenerateItemDrops(new[] { fireworksOpening });
