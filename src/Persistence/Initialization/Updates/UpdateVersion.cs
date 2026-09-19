@@ -804,4 +804,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureFullAncientLootUpdatePlugIn"/>.
     /// </summary>
     ConfigureFullAncientLoot = 159,
+
+    /// <summary>
+    /// The version of the <see cref="AddSeedMasterToNoriaUpdatePlugIn"/>.
+    /// </summary>
+    AddSeedMasterToNoria = 160,
 }

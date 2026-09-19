@@ -38,5 +38,6 @@ internal class Noria : Version095d.Maps.Noria
         yield return this.CreateMonsterSpawn(13, this.NpcDictionary[451], 179, 129, Direction.SouthEast);
         yield return this.CreateMonsterSpawn(14, this.NpcDictionary[229], 169, 88, Direction.SouthEast, SpawnTrigger.Wandering); // Marlon
         yield return this.CreateMonsterSpawn(15, this.NpcDictionary[368], 175, 120, Direction.SouthEast); // Elphis
+        yield return this.CreateMonsterSpawn(16, this.NpcDictionary[452], 171, 121, Direction.SouthWest); // Seed Master
     }
 }

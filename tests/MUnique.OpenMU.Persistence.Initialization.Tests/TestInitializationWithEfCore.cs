@@ -1262,6 +1262,31 @@ internal class TestInitializationWithEfCore
     }
 
     /// <summary>
+    /// Tests that the Seed Master is added to Noria without duplicate spawns.
+    /// </summary>
+    [Test]
+    public async Task TestAddSeedMasterToNoriaUpdatePlugInAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, false).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        var noria = configuration.Maps.Single(map => map is { Number: 3, Discriminator: 0 });
+        noria.MonsterSpawns.Remove(noria.MonsterSpawns.Single(spawn => spawn.MonsterDefinition?.Number == 452));
+
+        var update = new AddSeedMasterToNoriaUpdatePlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
+        var spawns = noria.MonsterSpawns.Where(spawn => spawn.MonsterDefinition?.Number == 452).ToList();
+        Assert.That(spawns, Has.Count.EqualTo(1));
+        Assert.That(spawns[0], Has.Property(nameof(MonsterSpawnArea.X1)).EqualTo(171));
+        Assert.That(spawns[0], Has.Property(nameof(MonsterSpawnArea.Y1)).EqualTo(121));
+    }
+
+    /// <summary>
     /// Tests the randomized spawns, local player respawn, and combat scaling of the Kalima 7 update.
     /// </summary>
     [Test]
@@ -1334,6 +1359,7 @@ internal class TestInitializationWithEfCore
             Assert.That(boss[Stats.DefenseRatePvm], Is.EqualTo(48_000));
         });
     }
+
 
     /// <summary>
     /// Tests that the Kalima 7 difficulty update triples only regular monster attributes idempotently.
