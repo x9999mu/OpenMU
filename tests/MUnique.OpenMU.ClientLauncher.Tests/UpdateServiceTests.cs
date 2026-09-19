@@ -110,6 +110,11 @@ internal sealed class UpdateServiceTests
 
         File.WriteAllText(Path.Combine(installDirectory, "leftover.txt"), "stale");
         File.WriteAllText(Path.Combine(installDirectory, "config.ini"), "ServerIP=local");
+        File.WriteAllText(Path.Combine(installDirectory, "launcher.config"), "launcher settings");
+        Directory.CreateDirectory(Path.Combine(installDirectory, LauncherPaths.LauncherDataDirectoryName));
+        File.WriteAllText(
+            Path.Combine(installDirectory, LauncherPaths.LauncherDataDirectoryName, "launcher-state.json"),
+            "{}");
         service.PrepareCleanInstall();
         var check = await service.CheckAsync(CancellationToken.None);
         Assert.That(check.IsClientInstalled, Is.False);
@@ -119,6 +124,8 @@ internal sealed class UpdateServiceTests
         Assert.That(File.Exists(Path.Combine(installDirectory, "leftover.txt")), Is.False);
         Assert.That(File.ReadAllText(Path.Combine(installDirectory, "Main.exe")), Is.EqualTo("runtime v1"));
         Assert.That(File.ReadAllText(Path.Combine(installDirectory, "config.ini")), Is.EqualTo("ServerIP=local"));
+        Assert.That(File.Exists(Path.Combine(installDirectory, "launcher.config")), Is.True);
+        Assert.That(Directory.Exists(Path.Combine(installDirectory, LauncherPaths.LauncherDataDirectoryName)), Is.True);
     }
 
     private static UpdateService CreateService(string rootDirectory, string installDirectory, string baseUrl)

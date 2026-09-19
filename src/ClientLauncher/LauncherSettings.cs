@@ -43,6 +43,12 @@ public class LauncherSettings
     public string? InstallDirectory { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the client is installed next to the launcher
+    /// executable. It is turned off as soon as the user selects another directory.
+    /// </summary>
+    public bool UseDefaultInstallDirectory { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the url of the update manifest.
     /// </summary>
     public string? ManifestUrl { get; set; }

@@ -136,17 +136,62 @@ internal sealed class UpdateService : IDisposable
 
         var backupDirectory = Path.Combine(LauncherPaths.GetBackupDirectory(this._rootDirectory), DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
         Directory.CreateDirectory(backupDirectory);
-        var backupTarget = Path.Combine(backupDirectory, "client");
-        try
+
+        // Files of the launcher itself are never removed; everything else is moved out of the
+        // way, so the client can be installed from scratch.
+        foreach (var entryPath in Directory.EnumerateFileSystemEntries(this.InstallDirectory))
         {
-            Directory.Move(this.InstallDirectory, backupTarget);
-            LauncherLog.Info($"Moved the previous installation to {backupTarget}.");
+            var name = Path.GetFileName(entryPath);
+            if (IsLauncherFile(name) || string.Equals(name, "config.ini", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var targetPath = Path.Combine(backupDirectory, name);
+            try
+            {
+                if (Directory.Exists(entryPath))
+                {
+                    Directory.Move(entryPath, targetPath);
+                }
+                else
+                {
+                    File.Move(entryPath, targetPath);
+                }
+            }
+            catch (IOException ex)
+            {
+                LauncherLog.Warn($"Could not move '{entryPath}' to the backup, it will be deleted: {ex.Message}");
+                if (Directory.Exists(entryPath))
+                {
+                    Directory.Delete(entryPath, recursive: true);
+                }
+                else
+                {
+                    File.Delete(entryPath);
+                }
+            }
         }
-        catch (IOException ex)
+
+        LauncherLog.Info($"Moved the previous installation to {backupDirectory}.");
+    }
+
+    private static bool IsLauncherFile(string name)
+    {
+        if (string.Equals(name, LauncherPaths.LauncherDataDirectoryName, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "launcher.config", StringComparison.OrdinalIgnoreCase))
         {
-            LauncherLog.Warn($"Could not move the previous installation, it will be deleted: {ex.Message}");
-            Directory.Delete(this.InstallDirectory, recursive: true);
+            return true;
         }
+
+        var processName = Path.GetFileName(Environment.ProcessPath ?? string.Empty);
+        if (!string.IsNullOrEmpty(processName) && string.Equals(name, processName, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return name.StartsWith("MuMainLauncher", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("MUnique.OpenMU.ClientLauncher", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -190,7 +235,7 @@ internal sealed class UpdateService : IDisposable
             downloadedBytes += manifest.Runtime.Archive.Size;
 
             progress?.Report(new UpdateProgress(UpdateStage.Extracting, "Extracting the client...", 0.78));
-            await Task.Run(() => ArchiveExtractor.Extract(runtimeArchive, runtimePayload, manifest.Runtime.Archive.Format), cancellationToken).ConfigureAwait(false);
+            await Task.Run(() => ArchiveExtractor.Extract(runtimeArchive, runtimePayload, manifest.Runtime.Archive.Format, cancellationToken), cancellationToken).ConfigureAwait(false);
         }
 
         var dataPayload = Path.Combine(stagingRoot, "data");
@@ -200,7 +245,7 @@ internal sealed class UpdateService : IDisposable
             await this._downloader.DownloadAsync(manifest.Data.Archive!.Url, dataArchive, manifest.Data.Archive.Size, manifest.Data.Archive.Sha256, new Progress<DownloadProgress>(ReportDownload), cancellationToken).ConfigureAwait(false);
 
             progress?.Report(new UpdateProgress(UpdateStage.Extracting, "Extracting the game data...", 0.84));
-            await Task.Run(() => ArchiveExtractor.Extract(dataArchive, dataPayload, manifest.Data.Archive.Format), cancellationToken).ConfigureAwait(false);
+            await Task.Run(() => ArchiveExtractor.Extract(dataArchive, dataPayload, manifest.Data.Archive.Format, cancellationToken), cancellationToken).ConfigureAwait(false);
         }
 
         if (this.IsGameRunning())
@@ -215,12 +260,12 @@ internal sealed class UpdateService : IDisposable
             {
                 if (check.NeedsRuntime)
                 {
-                    ApplyDirectory(runtimePayload, this.InstallDirectory, preserve);
+                    ApplyDirectory(runtimePayload, this.InstallDirectory, preserve, cancellationToken);
                 }
 
                 if (check.NeedsData)
                 {
-                    ApplyDirectory(dataPayload, this.InstallDirectory, preserve);
+                    ApplyDirectory(dataPayload, this.InstallDirectory, preserve, cancellationToken);
                 }
 
                 if (this._preservedConfigFile is { } preservedConfig)
@@ -360,7 +405,11 @@ internal sealed class UpdateService : IDisposable
         }
     }
 
-    private static void ApplyDirectory(string sourceDirectory, string targetDirectory, ICollection<string> preserve)
+    private static void ApplyDirectory(
+        string sourceDirectory,
+        string targetDirectory,
+        ICollection<string> preserve,
+        CancellationToken cancellationToken)
     {
         if (!Directory.Exists(sourceDirectory))
         {
@@ -370,6 +419,7 @@ internal sealed class UpdateService : IDisposable
         Directory.CreateDirectory(targetDirectory);
         foreach (var sourceFilePath in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var relativePath = Path.GetRelativePath(sourceDirectory, sourceFilePath);
             var targetFilePath = Path.Combine(targetDirectory, relativePath);
             if (preserve.Contains(relativePath, StringComparer.OrdinalIgnoreCase) && File.Exists(targetFilePath))

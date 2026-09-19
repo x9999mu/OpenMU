@@ -11,22 +11,48 @@ using System.IO;
 /// </summary>
 internal static class LauncherPaths
 {
+    /// <summary>
+    /// The name of the directory which contains the launcher state, cache and log.
+    /// </summary>
+    internal const string LauncherDataDirectoryName = ".launcher";
+
     private const string ClientDirectoryName = "client";
     private const string StateFileName = "launcher-state.json";
     private const string LogFileName = "launcher.log";
-    private const string CacheDirectoryName = ".cache";
-    private const string StagingDirectoryName = ".staging";
-    private const string BackupDirectoryName = ".backup";
+    private const string CacheDirectoryName = "cache";
+    private const string StagingDirectoryName = "staging";
+    private const string BackupDirectoryName = "backup";
+    private const string WriteProbeFileName = ".write-probe";
 
     /// <summary>
-    /// Gets the root directory of the launcher data, usually <c>%LOCALAPPDATA%\MuOnline</c>.
+    /// Gets the directory which contains the launcher executable.
     /// </summary>
-    internal static string RootDirectory { get; } = DetermineRootDirectory();
+    internal static string LauncherDirectory { get; } = AppContext.BaseDirectory;
 
     /// <summary>
-    /// Gets the default directory into which the game client is installed.
+    /// Gets a value indicating whether the client and the launcher data are stored next to the
+    /// launcher executable (portable layout). If the launcher directory is not writable, the
+    /// data is stored in <c>%LOCALAPPDATA%\MuOnline</c> instead.
     /// </summary>
-    internal static string DefaultInstallDirectory => Path.Combine(RootDirectory, ClientDirectoryName);
+    internal static bool IsPortable { get; } = IsWritable(LauncherDirectory);
+
+    /// <summary>
+    /// Gets the root directory of the launcher data: <c>.launcher</c> next to the executable
+    /// in the portable layout, otherwise <c>%LOCALAPPDATA%\MuOnline</c>.
+    /// </summary>
+    internal static string RootDirectory { get; } =
+        IsPortable
+            ? Path.Combine(LauncherDirectory, LauncherDataDirectoryName)
+            : DetermineFallbackRootDirectory();
+
+    /// <summary>
+    /// Gets the default directory into which the game client is installed: the directory of the
+    /// launcher executable, or a sub directory of the fallback directory if it is not writable.
+    /// </summary>
+    internal static string DefaultInstallDirectory { get; } =
+        IsPortable
+            ? LauncherDirectory
+            : Path.Combine(DetermineFallbackRootDirectory(), ClientDirectoryName);
 
     /// <summary>
     /// Gets the path of the file which stores the installed versions.
@@ -104,7 +130,7 @@ internal static class LauncherPaths
         Directory.CreateDirectory(GetBackupDirectory(rootDirectory));
     }
 
-    private static string DetermineRootDirectory()
+    private static string DetermineFallbackRootDirectory()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         if (string.IsNullOrWhiteSpace(localAppData))
@@ -113,5 +139,18 @@ internal static class LauncherPaths
         }
 
         return Path.Combine(localAppData, "MuOnline");
+    }
+
+    private static bool IsWritable(string directory)
+    {
+        try
+        {
+            using var probe = File.Create(Path.Combine(directory, WriteProbeFileName), 1, FileOptions.DeleteOnClose);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            return false;
+        }
     }
 }

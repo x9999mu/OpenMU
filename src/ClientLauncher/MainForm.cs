@@ -18,7 +18,6 @@ using System.Xml.Serialization;
 /// </summary>
 public partial class MainForm : Form
 {
-    private const string ConfigFileName = "launcher.config";
     private const string AutoServerDescription = "x9999 (auto)";
 
     private LauncherSettings _settings = new();
@@ -63,6 +62,8 @@ public partial class MainForm : Form
     }
 
     private BindingList<ClientResolution> Resolutions { get; set; } = new(LauncherSettings.DefaultResolutions);
+
+    private static string ConfigFilePath => Path.Combine(AppContext.BaseDirectory, "launcher.config");
 
     /// <inheritdoc />
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -214,12 +215,12 @@ public partial class MainForm : Form
     {
         this._serversComboBox.DataSource = this.Hosts;
         this._settings = new LauncherSettings();
-        if (File.Exists(ConfigFileName))
+        if (File.Exists(ConfigFilePath))
         {
             try
             {
                 var reader = new XmlSerializer(typeof(LauncherSettings));
-                using var file = new StreamReader(ConfigFileName);
+                using var file = new StreamReader(ConfigFilePath);
                 if (reader.Deserialize(file) is LauncherSettings launcherSettings)
                 {
                     this._settings = launcherSettings;
@@ -231,7 +232,7 @@ public partial class MainForm : Form
             }
             catch (Exception ex)
             {
-                LauncherLog.Warn($"Could not read '{ConfigFileName}': {ex.Message}");
+                LauncherLog.Warn($"Could not read '{ConfigFilePath}': {ex.Message}");
                 this.ResetHosts();
             }
         }
@@ -247,7 +248,12 @@ public partial class MainForm : Form
 
         this._settings.ManifestUrl ??= LauncherSettings.DefaultManifestUrl;
         this._settings.Channel ??= "stable";
-        this._settings.InstallDirectory ??= LauncherPaths.DefaultInstallDirectory;
+        if (this._settings.UseDefaultInstallDirectory || string.IsNullOrWhiteSpace(this._settings.InstallDirectory))
+        {
+            this._settings.InstallDirectory = LauncherPaths.DefaultInstallDirectory;
+            this._settings.MainExePath = Path.Combine(LauncherPaths.DefaultInstallDirectory, "Main.exe");
+        }
+
         this._persistedMainExePath = this._settings.MainExePath;
         this._persistedInstallDirectory = this._settings.InstallDirectory;
         this._persistedManifestUrl = this._settings.ManifestUrl;
@@ -298,12 +304,12 @@ public partial class MainForm : Form
         try
         {
             var writer = new XmlSerializer(typeof(LauncherSettings));
-            using var file = File.Create(ConfigFileName);
+            using var file = File.Create(ConfigFilePath);
             writer.Serialize(file, this._settings);
         }
         catch (Exception ex)
         {
-            LauncherLog.Warn($"Could not save '{ConfigFileName}': {ex.Message}");
+            LauncherLog.Warn($"Could not save '{ConfigFilePath}': {ex.Message}");
         }
         finally
         {
@@ -320,9 +326,23 @@ public partial class MainForm : Form
         if (!string.IsNullOrWhiteSpace(this._settings.MainExePath))
         {
             this._settings.InstallDirectory = Path.GetDirectoryName(this._settings.MainExePath);
+            this._settings.UseDefaultInstallDirectory = IsDefaultInstallDirectory(this._settings.InstallDirectory);
         }
 
         this._settings.AvailableResolutions = this.Resolutions.ToList();
+    }
+
+    private static bool IsDefaultInstallDirectory(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            Path.TrimEndingDirectorySeparator(directory),
+            Path.TrimEndingDirectorySeparator(LauncherPaths.DefaultInstallDirectory),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -373,22 +393,28 @@ public partial class MainForm : Form
         }
 
         this.SetStatus(check.IsClientInstalled ? "Installing update..." : "Installing the game client...");
-        var (succeeded, errorMessage) = ProgressForm.Run(
+        var result = ProgressForm.Run(
             this,
             check.IsClientInstalled ? "Updating the game client" : "Installing the game client",
             (progress, cancellationToken) => updateService.ApplyAsync(check, progress, cancellationToken));
 
-        if (succeeded)
+        if (result.Succeeded)
         {
             this.SetStatus($"Client is up to date (runtime {check.Manifest.Runtime.Version}, data {check.Manifest.Data.Id}).");
             return true;
+        }
+
+        if (result.Canceled)
+        {
+            this.SetStatus("The update was canceled.");
+            return updateService.IsClientInstalled;
         }
 
         this.SetStatus("The update failed.");
         if (!updateService.IsClientInstalled)
         {
             MessageBox.Show(
-                "The game client could not be installed:" + Environment.NewLine + errorMessage,
+                "The game client could not be installed:" + Environment.NewLine + result.ErrorMessage,
                 "Update",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
@@ -396,7 +422,7 @@ public partial class MainForm : Form
         }
 
         var continueWithoutUpdate = MessageBox.Show(
-            "The update failed:" + Environment.NewLine + errorMessage + Environment.NewLine + Environment.NewLine +
+            "The update failed:" + Environment.NewLine + result.ErrorMessage + Environment.NewLine + Environment.NewLine +
             "Do you want to start the installed version anyway?",
             "Update",
             MessageBoxButtons.YesNo,
@@ -412,7 +438,7 @@ public partial class MainForm : Form
         }
 
         var selfUpdateStarted = false;
-        var (succeeded, errorMessage) = ProgressForm.Run(
+        var result = ProgressForm.Run(
             this,
             "Updating the launcher",
             async (progress, cancellationToken) =>
@@ -427,9 +453,9 @@ public partial class MainForm : Form
             return true;
         }
 
-        if (!succeeded && errorMessage is not null)
+        if (!result.Succeeded && !result.Canceled && result.ErrorMessage is not null)
         {
-            LauncherLog.Warn($"The launcher update failed: {errorMessage}");
+            LauncherLog.Warn($"The launcher update failed: {result.ErrorMessage}");
         }
 
         return false;

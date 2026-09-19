@@ -36,6 +36,28 @@ internal static class TestArchiveHelper
     }
 
     /// <summary>
+    /// Creates a tar.gz archive with a root directory entry and a "./" prefixed file, which is
+    /// what <c>tar -C directory .</c> produces.
+    /// </summary>
+    /// <param name="archivePath">The path of the archive to create.</param>
+    /// <param name="content">The content of the "./Main.exe" entry.</param>
+    internal static void CreateTarGzWithRootEntry(string archivePath, string content)
+    {
+        using var fileStream = File.Create(archivePath);
+        using var gzipStream = new GZipStream(fileStream, CompressionLevel.SmallestSize);
+        using var writer = new TarWriter(gzipStream, TarEntryFormat.Pax, leaveOpen: false);
+        writer.WriteEntry(new PaxTarEntry(TarEntryType.Directory, "./"));
+        writer.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, "./Main.exe")
+        {
+            DataStream = new MemoryStream(Encoding.UTF8.GetBytes(content)),
+        });
+        writer.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, "./Data/Dec2.dat")
+        {
+            DataStream = new MemoryStream(Encoding.UTF8.GetBytes(content)),
+        });
+    }
+
+    /// <summary>
     /// Creates a tar.gz archive which contains a symbolic link entry.
     /// </summary>
     /// <param name="archivePath">The path of the archive to create.</param>

@@ -5,6 +5,7 @@
 namespace MUnique.OpenMU.ClientLauncher.Tests;
 
 using System.IO;
+using System.Threading;
 
 /// <summary>
 /// Tests for the <see cref="ArchiveExtractor"/>.
@@ -25,7 +26,7 @@ internal sealed class ArchiveExtractorTests
             ]);
         var targetDirectory = Path.Combine(directory.Path, "target");
 
-        ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz");
+        ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz", CancellationToken.None);
 
         Assert.That(File.ReadAllText(Path.Combine(targetDirectory, "Main.exe")), Is.EqualTo("runtime"));
         Assert.That(File.ReadAllText(Path.Combine(targetDirectory, "Data", "Dec2.dat")), Is.EqualTo("data"));
@@ -40,7 +41,7 @@ internal sealed class ArchiveExtractorTests
         TestArchiveHelper.CreateZip(archivePath, [("Main.exe", "runtime")]);
         var targetDirectory = Path.Combine(directory.Path, "target");
 
-        ArchiveExtractor.Extract(archivePath, targetDirectory, "zip");
+        ArchiveExtractor.Extract(archivePath, targetDirectory, "zip", CancellationToken.None);
 
         Assert.That(File.ReadAllText(Path.Combine(targetDirectory, "Main.exe")), Is.EqualTo("runtime"));
     }
@@ -54,7 +55,7 @@ internal sealed class ArchiveExtractorTests
         var targetDirectory = Path.Combine(directory.Path, "target");
 
         Assert.That(
-            () => ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz"),
+            () => ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz", CancellationToken.None),
             Throws.TypeOf<InvalidDataException>());
         Assert.That(File.Exists(Path.Combine(directory.Path, "evil.txt")), Is.False);
     }
@@ -67,7 +68,7 @@ internal sealed class ArchiveExtractorTests
         TestArchiveHelper.CreateTarGzWithRawEntryName(archivePath, "/tmp/evil.txt", "boom");
         var targetDirectory = Path.Combine(directory.Path, "target");
 
-        ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz");
+        ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz", CancellationToken.None);
 
         Assert.That(File.Exists(Path.Combine(targetDirectory, "tmp", "evil.txt")), Is.True);
     }
@@ -81,7 +82,36 @@ internal sealed class ArchiveExtractorTests
         var targetDirectory = Path.Combine(directory.Path, "target");
 
         Assert.That(
-            () => ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz"),
+            () => ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz", CancellationToken.None),
             Throws.TypeOf<InvalidDataException>());
+    }
+
+    [Test]
+    public void Extract_WithCanceledToken_Throws()
+    {
+        using var directory = new TestDirectoryHelper();
+        var archivePath = Path.Combine(directory.Path, "archive.tar.gz");
+        TestArchiveHelper.CreateTarGz(archivePath, [("Main.exe", "runtime")]);
+        var targetDirectory = Path.Combine(directory.Path, "target");
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        Assert.That(
+            () => ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz", cancellationTokenSource.Token),
+            Throws.TypeOf<OperationCanceledException>());
+    }
+
+    [Test]
+    public void Extract_WithRootDirectoryEntries_CreatesFiles()
+    {
+        using var directory = new TestDirectoryHelper();
+        var archivePath = Path.Combine(directory.Path, "root-entry.tar.gz");
+        TestArchiveHelper.CreateTarGzWithRootEntry(archivePath, "runtime");
+        var targetDirectory = Path.Combine(directory.Path, "target");
+
+        ArchiveExtractor.Extract(archivePath, targetDirectory, "tar.gz", CancellationToken.None);
+
+        Assert.That(File.ReadAllText(Path.Combine(targetDirectory, "Main.exe")), Is.EqualTo("runtime"));
+        Assert.That(File.ReadAllText(Path.Combine(targetDirectory, "Data", "Dec2.dat")), Is.EqualTo("runtime"));
     }
 }

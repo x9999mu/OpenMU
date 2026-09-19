@@ -19,6 +19,7 @@ internal sealed class ProgressForm : Form
     private readonly Label _messageLabel;
     private readonly ProgressBar _progressBar;
     private readonly Button _cancelButton;
+    private bool _isOperationFinished;
 
     private ProgressForm(string title, Func<IProgress<UpdateProgress>, CancellationToken, Task> operation)
     {
@@ -74,20 +75,25 @@ internal sealed class ProgressForm : Form
     internal string? ErrorMessage { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether the user canceled the operation.
+    /// </summary>
+    internal bool Canceled { get; private set; }
+
+    /// <summary>
     /// Runs the specified operation while showing a progress dialog.
     /// </summary>
     /// <param name="owner">The owner window.</param>
     /// <param name="title">The title of the dialog.</param>
     /// <param name="operation">The operation to run.</param>
     /// <returns>The result of the operation.</returns>
-    internal static (bool Succeeded, string? ErrorMessage) Run(
+    internal static ProgressResult Run(
         IWin32Window owner,
         string title,
         Func<IProgress<UpdateProgress>, CancellationToken, Task> operation)
     {
         using var form = new ProgressForm(title, operation);
         form.ShowDialog(owner);
-        return (form.Succeeded, form.ErrorMessage);
+        return new ProgressResult(form.Succeeded, form.Canceled, form.ErrorMessage);
     }
 
     private void OnShown(object? sender, EventArgs e)
@@ -107,6 +113,7 @@ internal sealed class ProgressForm : Form
         }
         catch (OperationCanceledException)
         {
+            this.Canceled = true;
             this.ErrorMessage = "The update was canceled.";
             LauncherLog.Warn("The update was canceled by the user.");
         }
@@ -117,6 +124,7 @@ internal sealed class ProgressForm : Form
         }
         finally
         {
+            this._isOperationFinished = true;
             this.Close();
         }
     }
@@ -155,7 +163,9 @@ internal sealed class ProgressForm : Form
 
     private void OnFormClosing(object? sender, FormClosingEventArgs e)
     {
-        if (e.CloseReason == CloseReason.UserClosing)
+        // The dialog closes itself when the operation has finished; a close request of the
+        // user is treated as a cancellation of the running operation.
+        if (e.CloseReason == CloseReason.UserClosing && !this._isOperationFinished)
         {
             e.Cancel = true;
             this.OnCancelClick(sender, EventArgs.Empty);
