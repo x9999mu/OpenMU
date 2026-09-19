@@ -10,11 +10,17 @@ namespace MUnique.OpenMU.ClientLauncher;
 /// <param name="Manifest">The remote manifest.</param>
 /// <param name="NeedsRuntime">A value indicating whether the runtime package needs to be downloaded.</param>
 /// <param name="NeedsData">A value indicating whether the data package needs to be downloaded.</param>
+/// <param name="NeedsAudio">A value indicating whether the audio package needs to be downloaded.</param>
 /// <param name="IsClientInstalled">A value indicating whether the client is installed locally.</param>
-internal sealed record UpdateCheckResult(UpdateManifest Manifest, bool NeedsRuntime, bool NeedsData, bool IsClientInstalled)
+internal sealed record UpdateCheckResult(
+    UpdateManifest Manifest,
+    bool NeedsRuntime,
+    bool NeedsData,
+    bool NeedsAudio,
+    bool IsClientInstalled)
 {
     /// <summary>
     /// Gets a value indicating whether any package needs to be downloaded.
     /// </summary>
-    internal bool UpdateRequired => this.NeedsRuntime || this.NeedsData;
+    internal bool UpdateRequired => this.NeedsRuntime || this.NeedsData || this.NeedsAudio;
 }

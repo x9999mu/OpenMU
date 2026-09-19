@@ -110,14 +110,16 @@ internal sealed class UpdateService : IDisposable
         var manifest = await this._manifestClient.GetManifestAsync(this.ManifestUrl, cancellationToken).ConfigureAwait(false);
         var needsRuntime = !string.Equals(this.State.Installed.RuntimeVersion, manifest.Runtime.Version, StringComparison.OrdinalIgnoreCase);
         var needsData = !string.Equals(this.State.Installed.DataId, manifest.Data.Id, StringComparison.OrdinalIgnoreCase);
+        var needsAudio = manifest.Audio is not null
+            && !string.Equals(this.State.Installed.AudioId, manifest.Audio.Id, StringComparison.OrdinalIgnoreCase);
         if (!this.IsClientInstalled)
         {
             needsRuntime = true;
             needsData = true;
         }
 
-        var result = new UpdateCheckResult(manifest, needsRuntime, needsData, this.IsClientInstalled);
-        LauncherLog.Info($"Update check: runtime={result.NeedsRuntime}, data={result.NeedsData}, installed={result.IsClientInstalled}.");
+        var result = new UpdateCheckResult(manifest, needsRuntime, needsData, needsAudio, this.IsClientInstalled);
+        LauncherLog.Info($"Update check: runtime={result.NeedsRuntime}, data={result.NeedsData}, audio={result.NeedsAudio}, installed={result.IsClientInstalled}.");
         return result;
     }
 
@@ -213,7 +215,13 @@ internal sealed class UpdateService : IDisposable
         var cacheDirectory = LauncherPaths.GetCacheDirectory(this._rootDirectory);
         var runtimeArchive = Path.Combine(cacheDirectory, $"MuMain-runtime-{Sanitize(manifest.Runtime.Version!)}.{GetExtension(manifest.Runtime.Archive!)}");
         var dataArchive = Path.Combine(cacheDirectory, $"MuMain-data-{Sanitize(manifest.Data.Id!)}.{GetExtension(manifest.Data.Archive!)}");
-        var totalDownloadSize = (check.NeedsRuntime ? manifest.Runtime.Archive!.Size : 0) + (check.NeedsData ? manifest.Data.Archive!.Size : 0);
+        var audioPackage = manifest.Audio;
+        var audioArchive = audioPackage is null
+            ? null
+            : Path.Combine(cacheDirectory, $"MuMain-audio-{Sanitize(audioPackage.Id!)}.{GetExtension(audioPackage.Archive!)}");
+        var totalDownloadSize = (check.NeedsRuntime ? manifest.Runtime.Archive!.Size : 0)
+                                + (check.NeedsData ? manifest.Data.Archive!.Size : 0)
+                                + (check.NeedsAudio && audioPackage is not null ? audioPackage.Archive!.Size : 0);
         this.EnsureFreeSpace(totalDownloadSize);
 
         long downloadedBytes = 0;
@@ -243,9 +251,21 @@ internal sealed class UpdateService : IDisposable
         {
             progress?.Report(new UpdateProgress(UpdateStage.Downloading, "Downloading the game data...", downloadedBytes / (double)Math.Max(totalDownloadSize, 1)));
             await this._downloader.DownloadAsync(manifest.Data.Archive!.Url, dataArchive, manifest.Data.Archive.Size, manifest.Data.Archive.Sha256, new Progress<DownloadProgress>(ReportDownload), cancellationToken).ConfigureAwait(false);
+            downloadedBytes += manifest.Data.Archive.Size;
 
             progress?.Report(new UpdateProgress(UpdateStage.Extracting, "Extracting the game data...", 0.84));
             await Task.Run(() => ArchiveExtractor.Extract(dataArchive, dataPayload, manifest.Data.Archive.Format, cancellationToken), cancellationToken).ConfigureAwait(false);
+        }
+
+        var audioPayload = Path.Combine(stagingRoot, "audio");
+        if (check.NeedsAudio && audioPackage?.Archive is { } audioArchiveInfo && audioArchive is not null)
+        {
+            progress?.Report(new UpdateProgress(UpdateStage.Downloading, "Downloading the game audio...", downloadedBytes / (double)Math.Max(totalDownloadSize, 1)));
+            await this._downloader.DownloadAsync(audioArchiveInfo.Url, audioArchive, audioArchiveInfo.Size, audioArchiveInfo.Sha256, new Progress<DownloadProgress>(ReportDownload), cancellationToken).ConfigureAwait(false);
+            downloadedBytes += audioArchiveInfo.Size;
+
+            progress?.Report(new UpdateProgress(UpdateStage.Extracting, "Extracting the game audio...", 0.87));
+            await Task.Run(() => ArchiveExtractor.Extract(audioArchive, audioPayload, audioArchiveInfo.Format, cancellationToken), cancellationToken).ConfigureAwait(false);
         }
 
         if (this.IsGameRunning())
@@ -268,6 +288,11 @@ internal sealed class UpdateService : IDisposable
                     ApplyDirectory(dataPayload, this.InstallDirectory, preserve, cancellationToken);
                 }
 
+                if (check.NeedsAudio)
+                {
+                    ApplyDirectory(audioPayload, this.InstallDirectory, preserve, cancellationToken);
+                }
+
                 if (this._preservedConfigFile is { } preservedConfig)
                 {
                     File.WriteAllBytes(Path.Combine(this.InstallDirectory, "config.ini"), preservedConfig);
@@ -280,12 +305,17 @@ internal sealed class UpdateService : IDisposable
         this.State.InstallDirectory = this.InstallDirectory;
         this.State.Installed.RuntimeVersion = manifest.Runtime.Version;
         this.State.Installed.DataId = manifest.Data.Id;
+        if (audioPackage is not null)
+        {
+            this.State.Installed.AudioId = audioPackage.Id;
+        }
+
         this.State.InstalledAtUtc = DateTimeOffset.UtcNow;
         this.State.LauncherVersion = LauncherVersion;
         this.State.Save(this.StateFilePath);
 
         DeleteDirectory(stagingRoot);
-        this.CleanupCache(runtimeArchive, dataArchive);
+        this.CleanupCache(runtimeArchive, dataArchive, audioArchive);
         progress?.Report(new UpdateProgress(UpdateStage.Completed, "The client is up to date.", 1));
         LauncherLog.Info($"Update applied: runtime {manifest.Runtime.Version}, data {manifest.Data.Id}.");
     }
@@ -505,7 +535,7 @@ internal sealed class UpdateService : IDisposable
         }
     }
 
-    private void CleanupCache(string currentRuntimeArchive, string currentDataArchive)
+    private void CleanupCache(string currentRuntimeArchive, string currentDataArchive, string? currentAudioArchive)
     {
         try
         {
@@ -518,6 +548,14 @@ internal sealed class UpdateService : IDisposable
                 if (!string.Equals(dataFile, currentDataArchive, StringComparison.OrdinalIgnoreCase))
                 {
                     File.Delete(dataFile);
+                }
+            }
+
+            foreach (var audioFile in cacheFiles.Where(file => Path.GetFileName(file).StartsWith("MuMain-audio-", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!string.Equals(audioFile, currentAudioArchive, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(audioFile);
                 }
             }
 

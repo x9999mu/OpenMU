@@ -16,6 +16,7 @@ internal sealed class UpdateServiceTests
 {
     private const string RuntimeFileName = "/runtime.tar.gz";
     private const string DataFileName = "/data.tar.gz";
+    private const string AudioFileName = "/audio.tar.gz";
 
     [Test]
     public async Task CheckAndApply_DownloadsOnlyChangedPackages()
@@ -65,6 +66,54 @@ internal sealed class UpdateServiceTests
 
         // Files which are not part of the new archive are kept, see design decision D9.
         Assert.That(File.Exists(Path.Combine(installDirectory, "fonts", "DejaVuSans.ttf")), Is.True);
+    }
+
+    [Test]
+    public async Task CheckAndApply_InstallsAndUpdatesTheAudioPackage()
+    {
+        using var directory = new TestDirectoryHelper();
+        using var server = new TestHttpServer();
+        var installDirectory = Path.Combine(directory.Path, "client");
+        var runtimeBytes = CreateRuntimePackage(directory.Path, "1.0.0", "runtime v1");
+        var dataBytes = CreateDataPackage(directory.Path, "data v1", []);
+        var audioBytes = CreateAudioPackage(directory.Path, "audio v1");
+        server.AddFile(RuntimeFileName, runtimeBytes);
+        server.AddFile(DataFileName, dataBytes);
+        server.AddFile(AudioFileName, audioBytes);
+        server.AddFile("/manifest.json", CreateManifestJson(server.BaseUrl, "1.0.0", "id1", runtimeBytes, dataBytes, ("audio1", audioBytes)));
+        using var service = CreateService(directory.Path, installDirectory, server.BaseUrl);
+
+        var check = await service.CheckAsync(CancellationToken.None);
+        Assert.That(check.NeedsAudio, Is.True);
+
+        await service.ApplyAsync(check, null, CancellationToken.None);
+
+        Assert.That(File.ReadAllText(Path.Combine(installDirectory, "Data", "Sound", "test.wav")), Is.EqualTo("audio v1"));
+        Assert.That(File.ReadAllText(Path.Combine(installDirectory, "Data", "Music", "test.mp3")), Is.EqualTo("audio v1"));
+        Assert.That(server.GetRequestCount(AudioFileName), Is.EqualTo(1));
+
+        // Nothing changed, so nothing is downloaded again.
+        var secondCheck = await service.CheckAsync(CancellationToken.None);
+        Assert.That(secondCheck.UpdateRequired, Is.False);
+        Assert.That(secondCheck.NeedsAudio, Is.False);
+        Assert.That(server.GetRequestCount(AudioFileName), Is.EqualTo(1));
+
+        // Only the audio package changed.
+        var newAudioBytes = CreateAudioPackage(directory.Path, "audio v2");
+        server.AddFile(AudioFileName, newAudioBytes);
+        server.AddFile("/manifest.json", CreateManifestJson(server.BaseUrl, "1.0.0", "id1", runtimeBytes, dataBytes, ("audio2", newAudioBytes)));
+
+        var thirdCheck = await service.CheckAsync(CancellationToken.None);
+        Assert.That(thirdCheck.NeedsRuntime, Is.False);
+        Assert.That(thirdCheck.NeedsData, Is.False);
+        Assert.That(thirdCheck.NeedsAudio, Is.True);
+
+        await service.ApplyAsync(thirdCheck, null, CancellationToken.None);
+
+        Assert.That(File.ReadAllText(Path.Combine(installDirectory, "Data", "Sound", "test.wav")), Is.EqualTo("audio v2"));
+        Assert.That(server.GetRequestCount(RuntimeFileName), Is.EqualTo(1));
+        Assert.That(server.GetRequestCount(DataFileName), Is.EqualTo(1));
+        Assert.That(server.GetRequestCount(AudioFileName), Is.EqualTo(2));
     }
 
     [Test]
@@ -167,7 +216,25 @@ internal sealed class UpdateServiceTests
         return File.ReadAllBytes(archivePath);
     }
 
-    private static string CreateManifestJson(string baseUrl, string runtimeVersion, string dataId, byte[] runtimeBytes, byte[] dataBytes)
+    private static byte[] CreateAudioPackage(string directory, string marker)
+    {
+        var archivePath = Path.Combine(directory, $"audio-{marker.Replace(" ", "-", StringComparison.Ordinal)}-{Guid.NewGuid():N}.tar.gz");
+        TestArchiveHelper.CreateTarGz(
+            archivePath,
+            [
+                ("Data/Sound/test.wav", marker),
+                ("Data/Music/test.mp3", marker),
+            ]);
+        return File.ReadAllBytes(archivePath);
+    }
+
+    private static string CreateManifestJson(
+        string baseUrl,
+        string runtimeVersion,
+        string dataId,
+        byte[] runtimeBytes,
+        byte[] dataBytes,
+        (string Id, byte[] Content)? audio = null)
     {
         var manifest = new UpdateManifest
         {
@@ -196,6 +263,22 @@ internal sealed class UpdateServiceTests
                 },
             },
         };
+
+        if (audio is { } audioPackage)
+        {
+            manifest.Audio = new UpdateManifest.PackageInfo
+            {
+                Id = audioPackage.Id,
+                Archive = new UpdateManifest.ArchiveInfo
+                {
+                    Url = baseUrl + AudioFileName.TrimStart('/'),
+                    Size = audioPackage.Content.Length,
+                    Sha256 = Hash(audioPackage.Content),
+                    Format = "tar.gz",
+                },
+            };
+        }
+
         return JsonSerializer.Serialize(manifest, LauncherJson.Options);
     }
 

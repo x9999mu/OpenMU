@@ -108,6 +108,16 @@ internal sealed class UpdateManifestTests
               "format": "tar.gz"
             }
           },
+          "audio": {
+            "id": "audio-1",
+            "tag": "client-latest",
+            "archive": {
+              "url": "https://github.com/x9999mu/MuMain/releases/download/client-latest/MuMain-audio-84f1c2d3e4a5.tar.gz",
+              "size": 314572800,
+              "sha256": "8e69fcf6a4d0335487f4bbf0a2b7d4cf2f2b0a2c1c4f8f5e1b6b1c8d0a3e5f72",
+              "format": "tar.gz"
+            }
+          },
           "data": {
             "id": "7fce146eb3fe34a0",
             "tag": "data-7fce146eb3fe34a0",
@@ -143,6 +153,7 @@ internal sealed class UpdateManifestTests
         Assert.That(manifest.Data.Id, Is.EqualTo("7fce146eb3fe34a0"));
         Assert.That(manifest.Server!.Port, Is.EqualTo(44405));
         Assert.That(manifest.Launcher!.Version, Is.EqualTo("1.0.0"));
+        Assert.That(manifest.Audio!.Id, Is.EqualTo("audio-1"));
     }
 
     private static UpdateManifest CreateValidManifest()

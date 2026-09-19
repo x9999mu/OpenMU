@@ -120,5 +120,10 @@ internal sealed class InstallState
         /// Gets or sets the installed data id.
         /// </summary>
         public string? DataId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the installed audio id.
+        /// </summary>
+        public string? AudioId { get; set; }
     }
 }

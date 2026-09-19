@@ -42,6 +42,12 @@ internal sealed class UpdateManifest
     public PackageInfo Data { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the optional audio package (<c>Data\Sound</c> and <c>Data\Music</c>).
+    /// It is optional so that manifests without audio are still valid.
+    /// </summary>
+    public PackageInfo? Audio { get; set; }
+
+    /// <summary>
     /// Gets or sets the information about the latest launcher version.
     /// </summary>
     public LauncherInfo? Launcher { get; set; }
@@ -80,6 +86,16 @@ internal sealed class UpdateManifest
         }
 
         ValidateArchive(this.Data!.Archive, "data");
+
+        if (this.Audio is { } audio)
+        {
+            if (string.IsNullOrWhiteSpace(audio.Id))
+            {
+                throw new InvalidDataException("The audio package of the manifest does not contain an id.");
+            }
+
+            ValidateArchive(audio.Archive, "audio");
+        }
 
         if (this.Launcher is { } launcher)
         {
