@@ -115,7 +115,7 @@ Nhóm lớn nhất trong `Data/`: `Monster` 947 file/82,9 MB, `Interface` 761/36
 ```
 Người chơi (Windows)                    GitHub (public)                     Máy Lenovo (tailnet)
 ┌────────────────────┐   manifest      ┌──────────────────────────────┐
-│ MuMainLauncher.exe │ ──────────────► │ release client-stable        │
+│ MuMainLauncher.exe │ ──────────────► │ release client-latest        │
 │  - đọc manifest    │                 │  manifest.json               │
 │  - tải archive     │   archives      └──────────────────────────────┘
 │  - verify + cài    │ ──────────────► ┌──────────────────────────────┐
@@ -137,7 +137,7 @@ Launcher không cần Tailscale để cập nhật; chỉ cần Tailscale (hoặ
 
 | Loại | Nguồn | Fallback |
 | --- | --- | --- |
-| `manifest.json` | `github.com/x9999mu/MuMain/releases/download/client-stable/manifest.json` | không có |
+| `manifest.json` | `github.com/x9999mu/MuMain/releases/download/client-latest/manifest.json` | không có |
 | Runtime archive | asset của release `v<version>` | không có |
 | Data archive | asset của release `data-<id>` | không có |
 | `MuMainLauncher.exe` | asset của release `launcher-v<version>` trong repo OpenMU | không có |
@@ -201,14 +201,26 @@ Ghi chú:
 
 | Repo | Tag | Asset |
 | --- | --- | --- |
-| `x9999mu/MuMain` | `v<version>` | runtime tar.gz 3 nền tảng (đã có) |
+| `x9999mu/MuMain` | `v<version>` | runtime tar.gz 3 nền tảng (tuỳ chọn, có thì manifest dùng luôn) |
 | `x9999mu/MuMain` | `data-<id>` | data tar.gz + `.sha256` (đã có) |
-| `x9999mu/MuMain` | `client-stable` | `manifest.json` (mới, cập nhật bằng `--clobber`) |
+| `x9999mu/MuMain` | `client-latest` | `manifest.json` (mới, cập nhật bằng `--clobber`) |
 | `x9999mu/OpenMU` | `launcher-v<version>` | `MuMainLauncher.exe`, `.sha256` (mới) |
 
-`client-stable` là tag cố định nên URL manifest không bao giờ đổi. Cách này giống pattern
+`client-latest` là tag cố định nên URL manifest không bao giờ đổi. Cách này giống pattern
 `develop-latest` mà repo client đang dùng. Release data đã được đánh dấu `--latest=false`,
 nên `releases/latest` vẫn luôn trỏ về bản runtime mới nhất.
+
+Repo client đang phát triển trên nhánh `develop` và nhánh đó **không** tạo release `v<version>`,
+nên workflow lấy runtime theo hai đường:
+
+1. Nếu có release `v<version>` chứa asset runtime → dùng asset đó, `runtime.version` là số version.
+2. Nếu không (trường hợp thường gặp trên `develop`) → chờ workflow `ci.yml` của đúng commit đó
+   build xong rồi tải artifact `mu-client-windows-native-x64-release-editor-off-no-data-main`.
+   `runtime.version` khi đó là `develop-<12 ký tự đầu của sha256>`, nên commit không đổi runtime
+   sẽ không bắt người chơi tải lại.
+
+Data vẫn luôn lấy từ release `data-<id>`. Vì `data-assets.yml` chỉ chạy khi `Data/`/`fonts/` đổi,
+workflow manifest sẽ tự dispatch `data-assets.yml` nếu release tương ứng chưa tồn tại.
 
 Version của launcher lấy từ assembly (`src/SharedAssemblyInfo.cs`), nên tag release cũng
 dùng đúng version đó (`launcher-v0.9.10.0`). Muốn phát hành launcher mới thì bump version
@@ -273,7 +285,7 @@ Không cần biết từng file có đổi hay không, nên:
 
 1. Đọc cấu hình launcher (`launcher.json` cạnh exe) hoặc dùng mặc định; cho chọn thư mục cài
    (mặc định `%LOCALAPPDATA%\MuOnline\client`).
-2. Tải `manifest.json` từ `client-stable`.
+2. Tải `manifest.json` từ `client-latest`.
 3. Kiểm tra dung lượng trống ≥ 1,2 GB trước khi tải.
 4. Tải runtime archive + data archive vào `.staging\`, có resume bằng HTTP Range.
 5. Verify SHA-256 từng archive; archive đã verify được giữ lại trong `.cache\`.
@@ -434,13 +446,18 @@ Thêm mới: `tests/MUnique.OpenMU.ClientLauncher.Tests/` cho các unit test ở
 
 ### 12.2 `x9999mu/MuMain` — sinh manifest
 
-Thêm job/workflow sinh `manifest.json`:
+Workflow `client-manifest.yml` sinh `manifest.json`:
 
-- Chạy sau khi build runtime, và chạy lại khi `Data/`/`fonts/` đổi (như `data-assets.yml`).
-- Tính `sha256` + `size` của runtime archive và data archive, điền `runtime.version`,
-  `data.id`, `server`, `launcher`, `preserve`.
-- Upload vào tag `client-stable` bằng `gh release upload --clobber`.
-- Script sinh đặt tại `client/tools/generate-manifest.py` (hoặc `.ps1`) để chạy lại được ở máy local.
+- Chạy tự động khi push lên `main`/`develop` và khi có release mới (`v*` hoặc `data-*`);
+  có thể chạy tay với input `runtime_tag` khi cần trỏ về một release cụ thể.
+- Lấy runtime từ release `v<version>` nếu có, nếu không thì từ artifact của `ci.yml`
+  cho đúng commit đang chạy (chờ CI build xong trước khi tải).
+- Lấy data từ release `data-<id>`, tự dispatch `data-assets.yml` nếu chưa có.
+- Tính `sha256` + `size` của hai archive, điền `runtime.version`, `data.id`, `server`,
+  `launcher`, `preserve`.
+- Upload vào tag `client-latest` bằng `gh release upload --clobber`.
+- Script sinh đặt tại `client/tools/generate_manifest.py`, chạy lại được ở máy local
+  (có tuỳ chọn `--base-url` để phục vụ archive từ một http server local).
 
 ### 12.3 `deploy/all-in-one`
 

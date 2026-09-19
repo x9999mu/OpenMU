@@ -12,7 +12,7 @@ public class LauncherSettings
     /// <summary>
     /// The default url of the update manifest.
     /// </summary>
-    public const string DefaultManifestUrl = "https://github.com/x9999mu/MuMain/releases/download/client-stable/manifest.json";
+    public const string DefaultManifestUrl = "https://github.com/x9999mu/MuMain/releases/download/client-latest/manifest.json";
 
     /// <summary>
     /// Gets the default resolutions, which are based on the open source MuMain.
