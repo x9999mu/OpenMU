@@ -24,6 +24,9 @@ public partial class MainForm : Form
     private LauncherSettings _settings = new();
     private BindingList<ServerHostSettings> _hostsBindingList = new();
     private readonly LauncherCommandLine _commandLine;
+    private string? _persistedMainExePath;
+    private string? _persistedInstallDirectory;
+    private string? _persistedManifestUrl;
     private UpdateService? _updateService;
     private bool _isBusy;
 
@@ -245,6 +248,9 @@ public partial class MainForm : Form
         this._settings.ManifestUrl ??= LauncherSettings.DefaultManifestUrl;
         this._settings.Channel ??= "stable";
         this._settings.InstallDirectory ??= LauncherPaths.DefaultInstallDirectory;
+        this._persistedMainExePath = this._settings.MainExePath;
+        this._persistedInstallDirectory = this._settings.InstallDirectory;
+        this._persistedManifestUrl = this._settings.ManifestUrl;
 
         if (!string.IsNullOrWhiteSpace(this._commandLine.InstallDirectory))
         {
@@ -274,6 +280,21 @@ public partial class MainForm : Form
     private void SaveCurrentOptions()
     {
         this.SyncSettingsFromUi();
+        var mainExePath = this._settings.MainExePath;
+        var installDirectory = this._settings.InstallDirectory;
+        var manifestUrl = this._settings.ManifestUrl;
+        if (!string.IsNullOrWhiteSpace(this._commandLine.InstallDirectory))
+        {
+            // Command line overrides are only valid for this run.
+            this._settings.MainExePath = this._persistedMainExePath;
+            this._settings.InstallDirectory = this._persistedInstallDirectory;
+        }
+
+        if (!string.IsNullOrWhiteSpace(this._commandLine.ManifestUrl))
+        {
+            this._settings.ManifestUrl = this._persistedManifestUrl;
+        }
+
         try
         {
             var writer = new XmlSerializer(typeof(LauncherSettings));
@@ -283,6 +304,12 @@ public partial class MainForm : Form
         catch (Exception ex)
         {
             LauncherLog.Warn($"Could not save '{ConfigFileName}': {ex.Message}");
+        }
+        finally
+        {
+            this._settings.MainExePath = mainExePath;
+            this._settings.InstallDirectory = installDirectory;
+            this._settings.ManifestUrl = manifestUrl;
         }
     }
 

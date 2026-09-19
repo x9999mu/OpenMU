@@ -530,6 +530,9 @@ Bảng tuỳ chọn dòng lệnh của launcher:
 | `--data-dir <path>` | Đổi chỗ chứa state/cache/log |
 | `--update-only` (hoặc `--silent`) | Cập nhật rồi thoát, không mở giao diện (dùng cho automation) |
 
+Các tuỳ chọn `--manifest`, `--install-dir` chỉ có hiệu lực cho lần chạy đó; chúng không được
+ghi vào `launcher.config`.
+
 ## 14. Lộ trình
 
 Trạng thái hiện tại: P1, P2 và P3 đã được triển khai trong `src/ClientLauncher/Updater/`,
