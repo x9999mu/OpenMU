@@ -20,7 +20,18 @@ public class ServerPlayerListRequestAction
     /// </summary>
     private static readonly TimeSpan MinimumRequestInterval = TimeSpan.FromSeconds(1);
 
+    /// <summary>
+    /// The time for which a built list is reused for all requesting players. Building the list
+    /// iterates all players, so without this every player who opens the window would cause its
+    /// own pass over all players. The client refreshes every few seconds, so a list which is
+    /// slightly behind is not a problem.
+    /// </summary>
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(2);
+
     private readonly ConditionalWeakTable<Player, RequestState> _requestStates = new();
+    private readonly object _cacheLock = new();
+    private IReadOnlyList<ServerPlayerListEntry>? _cachedEntries;
+    private DateTime _cacheExpiry;
 
     /// <summary>
     /// Requests the list of the players which are online on the same game server.
@@ -33,8 +44,14 @@ public class ServerPlayerListRequestAction
             return;
         }
 
+        var entries = await this.GetOnlinePlayersAsync(player.GameContext).ConfigureAwait(false);
+        await player.InvokeViewPlugInAsync<IServerPlayerListViewPlugIn>(p => p.ShowServerPlayerListAsync(entries)).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<IReadOnlyList<ServerPlayerListEntry>> BuildOnlinePlayerListAsync(IGameContext gameContext)
+    {
         var entries = new ConcurrentBag<ServerPlayerListEntry>();
-        await player.GameContext.ForEachPlayerAsync(
+        await gameContext.ForEachPlayerAsync(
             p =>
             {
                 if (TryCreateEntry(p, out var entry))
@@ -45,12 +62,30 @@ public class ServerPlayerListRequestAction
                 return Task.CompletedTask;
             }).ConfigureAwait(false);
 
-        var orderedEntries = entries
+        return entries
             .OrderBy(entry => entry.MapId)
             .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
 
-        await player.InvokeViewPlugInAsync<IServerPlayerListViewPlugIn>(p => p.ShowServerPlayerListAsync(orderedEntries)).ConfigureAwait(false);
+    private async ValueTask<IReadOnlyList<ServerPlayerListEntry>> GetOnlinePlayersAsync(IGameContext gameContext)
+    {
+        lock (this._cacheLock)
+        {
+            if (this._cachedEntries is { } cachedEntries && DateTime.UtcNow < this._cacheExpiry)
+            {
+                return cachedEntries;
+            }
+        }
+
+        var entries = await BuildOnlinePlayerListAsync(gameContext).ConfigureAwait(false);
+        lock (this._cacheLock)
+        {
+            this._cachedEntries = entries;
+            this._cacheExpiry = DateTime.UtcNow + CacheDuration;
+        }
+
+        return entries;
     }
 
     private static bool TryCreateEntry(Player player, out ServerPlayerListEntry entry)

@@ -34,18 +34,10 @@ public class ServerPlayerListTest
         ConfigurePlayer(otherPlayer, "OtherPlayer", 350, 2, secondMap);
         await gameContext.AddPlayerAsync(otherPlayer).ConfigureAwait(false);
 
-        var viewPlugIn = Mock.Get(requester.ViewPlugIns.GetPlugIn<IServerPlayerListViewPlugIn>()!);
-        IReadOnlyList<ServerPlayerListEntry>? reportedPlayers = null;
-        viewPlugIn
-            .Setup(p => p.ShowServerPlayerListAsync(It.IsAny<IReadOnlyList<ServerPlayerListEntry>>()))
-            .Callback<IReadOnlyList<ServerPlayerListEntry>>(players => reportedPlayers = players)
-            .Returns(new ValueTask());
-
         // act
-        await new ServerPlayerListRequestAction().RequestServerPlayerListAsync(requester).ConfigureAwait(false);
+        var reportedPlayers = await RequestListAsync(requester, new ServerPlayerListRequestAction()).ConfigureAwait(false);
 
         // assert
-        Assert.That(reportedPlayers, Is.Not.Null);
         Assert.That(
             reportedPlayers,
             Is.EquivalentTo(new[]
@@ -79,20 +71,12 @@ public class ServerPlayerListTest
         offlinePlayer.CurrentMap = map;
         await gameContext.AddPlayerAsync(offlinePlayer).ConfigureAwait(false);
 
-        var viewPlugIn = Mock.Get(requester.ViewPlugIns.GetPlugIn<IServerPlayerListViewPlugIn>()!);
-        IReadOnlyList<ServerPlayerListEntry>? reportedPlayers = null;
-        viewPlugIn
-            .Setup(p => p.ShowServerPlayerListAsync(It.IsAny<IReadOnlyList<ServerPlayerListEntry>>()))
-            .Callback<IReadOnlyList<ServerPlayerListEntry>>(players => reportedPlayers = players)
-            .Returns(new ValueTask());
-
         // act
-        await new ServerPlayerListRequestAction().RequestServerPlayerListAsync(requester).ConfigureAwait(false);
+        var reportedPlayers = await RequestListAsync(requester, new ServerPlayerListRequestAction()).ConfigureAwait(false);
 
         // assert
-        Assert.That(reportedPlayers, Is.Not.Null);
         Assert.That(
-            string.Join(", ", reportedPlayers!.Select(entry => entry.Name)),
+            string.Join(", ", reportedPlayers.Select(entry => entry.Name)),
             Is.EqualTo("Requester"),
             "Invisible players and offline players should not be reported.");
     }
@@ -120,6 +104,52 @@ public class ServerPlayerListTest
         viewPlugIn.Verify(
             p => p.ShowServerPlayerListAsync(It.IsAny<IReadOnlyList<ServerPlayerListEntry>>()),
             Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that the list is built once and shared by all requesting players while it's cached.
+    /// </summary>
+    [Test]
+    public async ValueTask SharesTheBuiltListBetweenRequestingPlayersAsync()
+    {
+        // arrange
+        var gameContext = GameContextTestHelper.CreateGameContext();
+        var map = await gameContext.GetMapAsync(0).ConfigureAwait(false);
+        var action = new ServerPlayerListRequestAction();
+
+        var firstRequester = await PlayerTestHelper.CreatePlayerAsync(gameContext).ConfigureAwait(false);
+        ConfigurePlayer(firstRequester, "FirstRequester", 10, 1, map);
+        await gameContext.AddPlayerAsync(firstRequester).ConfigureAwait(false);
+
+        var secondRequester = await PlayerTestHelper.CreatePlayerAsync(gameContext).ConfigureAwait(false);
+        ConfigurePlayer(secondRequester, "SecondRequester", 20, 2, map);
+        await gameContext.AddPlayerAsync(secondRequester).ConfigureAwait(false);
+
+        // act
+        var firstList = await RequestListAsync(firstRequester, action).ConfigureAwait(false);
+        var secondList = await RequestListAsync(secondRequester, action).ConfigureAwait(false);
+
+        // assert
+        Assert.That(
+            secondList,
+            Is.SameAs(firstList),
+            "The built list should be reused for a second requester instead of iterating all players again.");
+    }
+
+    private static async ValueTask<IReadOnlyList<ServerPlayerListEntry>> RequestListAsync(
+        Player requester,
+        ServerPlayerListRequestAction action)
+    {
+        IReadOnlyList<ServerPlayerListEntry>? reportedPlayers = null;
+        Mock.Get(requester.ViewPlugIns.GetPlugIn<IServerPlayerListViewPlugIn>()!)
+            .Setup(p => p.ShowServerPlayerListAsync(It.IsAny<IReadOnlyList<ServerPlayerListEntry>>()))
+            .Callback<IReadOnlyList<ServerPlayerListEntry>>(players => reportedPlayers = players)
+            .Returns(new ValueTask());
+
+        await action.RequestServerPlayerListAsync(requester).ConfigureAwait(false);
+
+        Assert.That(reportedPlayers, Is.Not.Null, "The list should have been reported to the client.");
+        return reportedPlayers!;
     }
 
     private static void ConfigurePlayer(Player player, string name, ushort level, byte classId, GameMap? map)
