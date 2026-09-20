@@ -19964,7 +19964,7 @@ public readonly struct ServerPlayer
     /// <summary>
     /// Gets the initial length of this data packet. When the size is dynamic, this value may be bigger than actually needed.
     /// </summary>
-    public static int Length => 15;
+    public static int Length => 17;
 
     /// <summary>
     /// Gets or sets the name.
@@ -20000,6 +20000,24 @@ public readonly struct ServerPlayer
     {
         get => ReadUInt16LittleEndian(this._data.Span[13..]);
         set => WriteUInt16LittleEndian(this._data.Span[13..], value);
+    }
+
+    /// <summary>
+    /// Gets or sets the x coordinate of the player on its current map.
+    /// </summary>
+    public byte PositionX
+    {
+        get => this._data.Span[15];
+        set => this._data.Span[15] = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the y coordinate of the player on its current map.
+    /// </summary>
+    public byte PositionY
+    {
+        get => this._data.Span[16];
+        set => this._data.Span[16] = value;
     }
 }
 }

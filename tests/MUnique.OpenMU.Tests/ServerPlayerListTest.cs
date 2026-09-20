@@ -10,6 +10,7 @@ using MUnique.OpenMU.GameLogic;
 using MUnique.OpenMU.GameLogic.Attributes;
 using MUnique.OpenMU.GameLogic.PlayerActions.ServerPlayerList;
 using MUnique.OpenMU.GameLogic.Views.ServerPlayerList;
+using MUnique.OpenMU.Pathfinding;
 
 /// <summary>
 /// Tests for the <see cref="ServerPlayerListRequestAction"/>.
@@ -27,11 +28,11 @@ public class ServerPlayerListTest
         var secondMap = await AddSecondMapAsync(gameContext).ConfigureAwait(false);
 
         var requester = await PlayerTestHelper.CreatePlayerAsync(gameContext).ConfigureAwait(false);
-        ConfigurePlayer(requester, "Requester", 10, 1, await gameContext.GetMapAsync(0).ConfigureAwait(false));
+        ConfigurePlayer(requester, "Requester", 10, 1, await gameContext.GetMapAsync(0).ConfigureAwait(false), 120, 130);
         await gameContext.AddPlayerAsync(requester).ConfigureAwait(false);
 
         var otherPlayer = await PlayerTestHelper.CreatePlayerAsync(gameContext).ConfigureAwait(false);
-        ConfigurePlayer(otherPlayer, "OtherPlayer", 350, 2, secondMap);
+        ConfigurePlayer(otherPlayer, "OtherPlayer", 350, 2, secondMap, 140, 150);
         await gameContext.AddPlayerAsync(otherPlayer).ConfigureAwait(false);
 
         // act
@@ -42,8 +43,8 @@ public class ServerPlayerListTest
             reportedPlayers,
             Is.EquivalentTo(new[]
             {
-                new ServerPlayerListEntry("Requester", 10, 1, 0),
-                new ServerPlayerListEntry("OtherPlayer", 350, 2, 1),
+                new ServerPlayerListEntry("Requester", 10, 1, 0, 120, 130),
+                new ServerPlayerListEntry("OtherPlayer", 350, 2, 1, 140, 150),
             }));
     }
 
@@ -152,12 +153,20 @@ public class ServerPlayerListTest
         return reportedPlayers!;
     }
 
-    private static void ConfigurePlayer(Player player, string name, ushort level, byte classId, GameMap? map)
+    private static void ConfigurePlayer(
+        Player player,
+        string name,
+        ushort level,
+        byte classId,
+        GameMap? map,
+        byte positionX = 0,
+        byte positionY = 0)
     {
         player.SelectedCharacter!.Name = name;
         player.SelectedCharacter.CharacterClass!.Number = classId;
         player.Attributes![Stats.Level] = level;
         player.CurrentMap = map;
+        player.Position = new Point(positionX, positionY);
     }
 
     private static async ValueTask<GameMap?> AddSecondMapAsync(IGameContext gameContext)

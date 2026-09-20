@@ -67,6 +67,8 @@ public class ServerPlayerListViewPlugIn : IServerPlayerListViewPlugIn
                     playerBlock.Level = entry.Level;
                     playerBlock.ClassId = entry.ClassId;
                     playerBlock.MapId = entry.MapId;
+                    playerBlock.PositionX = entry.PositionX;
+                    playerBlock.PositionY = entry.PositionY;
                 }
 
                 return size;

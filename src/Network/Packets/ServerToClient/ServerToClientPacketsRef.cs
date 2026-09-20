@@ -19112,7 +19112,7 @@ public readonly ref struct ServerPlayerRef
     /// <summary>
     /// Gets the initial length of this data packet. When the size is dynamic, this value may be bigger than actually needed.
     /// </summary>
-    public static int Length => 15;
+    public static int Length => 17;
 
     /// <summary>
     /// Gets or sets the name.
@@ -19148,6 +19148,24 @@ public readonly ref struct ServerPlayerRef
     {
         get => ReadUInt16LittleEndian(this._data[13..]);
         set => WriteUInt16LittleEndian(this._data[13..], value);
+    }
+
+    /// <summary>
+    /// Gets or sets the x coordinate of the player on its current map.
+    /// </summary>
+    public byte PositionX
+    {
+        get => this._data[15];
+        set => this._data[15] = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the y coordinate of the player on its current map.
+    /// </summary>
+    public byte PositionY
+    {
+        get => this._data[16];
+        set => this._data[16] = value;
     }
 }
 }

@@ -11,4 +11,6 @@ namespace MUnique.OpenMU.GameLogic.Views.ServerPlayerList;
 /// <param name="Level">The level of the character.</param>
 /// <param name="ClassId">The number of the character class.</param>
 /// <param name="MapId">The number of the map on which the character currently is, or <c>0</c> if it's not on a map.</param>
-public sealed record ServerPlayerListEntry(string Name, ushort Level, byte ClassId, ushort MapId);
+/// <param name="PositionX">The x coordinate of the character on its current map.</param>
+/// <param name="PositionY">The y coordinate of the character on its current map.</param>
+public sealed record ServerPlayerListEntry(string Name, ushort Level, byte ClassId, ushort MapId, byte PositionX, byte PositionY);

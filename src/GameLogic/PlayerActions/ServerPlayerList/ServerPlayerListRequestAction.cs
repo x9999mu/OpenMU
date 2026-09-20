@@ -107,7 +107,13 @@ public class ServerPlayerListRequestAction
         }
 
         var level = (ushort)Math.Clamp(player.Level, 0, ushort.MaxValue);
-        entry = new ServerPlayerListEntry(character.Name, level, characterClass.Number, player.CurrentMap?.MapId ?? 0);
+        entry = new ServerPlayerListEntry(
+            character.Name,
+            level,
+            characterClass.Number,
+            player.CurrentMap?.MapId ?? 0,
+            player.Position.X,
+            player.Position.Y);
         return true;
     }
 
