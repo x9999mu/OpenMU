@@ -2222,6 +2222,18 @@
     </Packet>
 
     <Packet>
+      <HeaderType>C1HeaderWithSubCode</HeaderType>
+      <Code>F3</Code>
+      <SubCode>60</SubCode>
+      <Name>ServerPlayerListRequest</Name>
+      <Length>4</Length>
+      <Direction>ClientToServer</Direction>
+      <SentWhen>The player opens the server player list window in the game client.</SentWhen>
+      <CausedReaction>The server sends the list of the players which are currently online on the same game server, split into one or more chunks.</CausedReaction>
+      <Fields />
+    </Packet>
+
+    <Packet>
       <HeaderType>C1Header</HeaderType>
       <Code>11</Code>
       <Name>HitRequest</Name>

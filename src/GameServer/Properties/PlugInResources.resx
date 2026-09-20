@@ -531,6 +531,18 @@
   <data name="SellItemToNpcHandlerPlugIn_Description" xml:space="preserve">
     <value>Handler for item sale to npc packets.</value>
   </data>
+  <data name="ServerPlayerListRequestHandlerPlugIn_Name" xml:space="preserve">
+    <value>Server Player List Request Handler</value>
+  </data>
+  <data name="ServerPlayerListRequestHandlerPlugIn_Description" xml:space="preserve">
+    <value>Handler for server player list request packets.</value>
+  </data>
+  <data name="ServerPlayerListViewPlugIn_Name" xml:space="preserve">
+    <value>Server Player List</value>
+  </data>
+  <data name="ServerPlayerListViewPlugIn_Description" xml:space="preserve">
+    <value>The default implementation of the IServerPlayerListViewPlugIn which is forwarding the list of the online players to the game client.</value>
+  </data>
   <data name="LogInHandlerPlugIn_Name" xml:space="preserve">
     <value>Login</value>
   </data>

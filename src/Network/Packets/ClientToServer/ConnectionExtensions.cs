@@ -2909,6 +2909,31 @@ public static class ConnectionExtensions
     }
 
     /// <summary>
+    /// Sends a <see cref="ServerPlayerListRequest" /> to this connection.
+    /// </summary>
+    /// <param name="connection">The connection.</param>
+    /// <remarks>
+    /// Is sent by the client when: The player opens the server player list window in the game client.
+    /// Causes reaction on server side: The server sends the list of the players which are currently online on the same game server, split into one or more chunks.
+    /// </remarks>
+    public static async ValueTask SendServerPlayerListRequestAsync(this IConnection? connection)
+    {
+        if (connection is null)
+        {
+            return;
+        }
+
+        int WritePacket()
+        {
+            var length = ServerPlayerListRequestRef.Length;
+            var packet = new ServerPlayerListRequestRef(connection.Output.GetSpan(length)[..length]);
+            return packet.Header.Length;
+        }
+
+        await connection.SendAsync(WritePacket).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Sends a <see cref="HitRequest" /> to this connection.
     /// </summary>
     /// <param name="connection">The connection.</param>

@@ -4939,6 +4939,42 @@ namespace MUnique.OpenMU.GameServer.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Handler for server player list request packets..
+        /// </summary>
+        public static string ServerPlayerListRequestHandlerPlugIn_Description {
+            get {
+                return ResourceManager.GetString("ServerPlayerListRequestHandlerPlugIn_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Player List Request Handler.
+        /// </summary>
+        public static string ServerPlayerListRequestHandlerPlugIn_Name {
+            get {
+                return ResourceManager.GetString("ServerPlayerListRequestHandlerPlugIn_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The default implementation of the IServerPlayerListViewPlugIn which is forwarding the list of the online players to the game client..
+        /// </summary>
+        public static string ServerPlayerListViewPlugIn_Description {
+            get {
+                return ResourceManager.GetString("ServerPlayerListViewPlugIn_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server Player List.
+        /// </summary>
+        public static string ServerPlayerListViewPlugIn_Name {
+            get {
+                return ResourceManager.GetString("ServerPlayerListViewPlugIn_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The default implementation of the ISetTradeMoneyPlugIn which is forwarding everything to the game client with specific data packets..
         /// </summary>
         public static string SetTradeMoneyPlugIn_Description {

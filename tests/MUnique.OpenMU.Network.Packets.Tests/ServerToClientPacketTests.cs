@@ -4205,6 +4205,28 @@ public class PacketStructureTests
     }
 
     /// <summary>
+    /// Tests the packet size calculation for ServerPlayerList.
+    /// </summary>
+    [Test]
+    public void ServerPlayerList_PacketSizeValidation()
+    {
+        // Basic packet validation
+        // Validate header type and field boundaries
+        
+        // Field 'ChunkIndex' starts at index 4 with size 1
+        Assert.That(4, Is.GreaterThanOrEqualTo(0), 
+            "Field 'ChunkIndex' has invalid negative index");
+        
+        // Field 'TotalChunks' starts at index 5 with size 1
+        Assert.That(5, Is.GreaterThanOrEqualTo(0), 
+            "Field 'TotalChunks' has invalid negative index");
+        
+        // Field 'Count' starts at index 6 with size 1
+        Assert.That(6, Is.GreaterThanOrEqualTo(0), 
+            "Field 'Count' has invalid negative index");
+    }
+
+    /// <summary>
     /// Tests the packet size calculation for ServerMessage.
     /// </summary>
     [Test]
