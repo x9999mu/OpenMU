@@ -748,26 +748,35 @@ public class AncientSets : InitializerBase
         set.CountDistinct = true;
         set.MinimumItemCount = 2;
         int number = 1;
-        var options = this.Context.CreateNew<ItemOptionDefinition>();
-        options.SetGuid(ItemOptionDefinitionNumbers.AncientOption, setNumber, (byte)number);
-        options.Name = $"{name} (Ancient Set)";
-        set.Options = options;
-        foreach (var optionTuple in ancientOptions)
+        var optionsId = GuidHelper.CreateGuid<ItemOptionDefinition>(ItemOptionDefinitionNumbers.AncientOption, setNumber, (byte)number);
+        var options = this.GameConfiguration.ItemOptions.FirstOrDefault(definition => definition.GetId() == optionsId);
+        if (options is null)
         {
-            var option = this.Context.CreateNew<IncreasableItemOption>();
-            option.SetGuid(ItemOptionDefinitionNumbers.AncientOption, setNumber, (byte)number);
-            option.Number = number++;
-            option.OptionType = this._ancientOptionType;
-            option.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
-            option.PowerUpDefinition.TargetAttribute = optionTuple.Attribute.GetPersistent(this.GameConfiguration);
-            option.PowerUpDefinition.Boost = this.Context.CreateNew<PowerUpDefinitionValue>();
-            option.PowerUpDefinition.Boost.ConstantValue.AggregateType = optionTuple.AggregateType;
-            option.PowerUpDefinition.Boost.ConstantValue.Value = optionTuple.Value;
-            options.PossibleOptions.Add(option);
+            options = this.Context.CreateNew<ItemOptionDefinition>();
+            options.SetGuid(optionsId);
+            options.Name = $"{name} (Ancient Set)";
+            this.GameConfiguration.ItemOptions.Add(options);
+        }
+
+        set.Options = options;
+        if (options.PossibleOptions.Count == 0)
+        {
+            foreach (var optionTuple in ancientOptions)
+            {
+                var option = this.Context.CreateNew<IncreasableItemOption>();
+                option.SetGuid(ItemOptionDefinitionNumbers.AncientOption, setNumber, (byte)number);
+                option.Number = number++;
+                option.OptionType = this._ancientOptionType;
+                option.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
+                option.PowerUpDefinition.TargetAttribute = optionTuple.Attribute.GetPersistent(this.GameConfiguration);
+                option.PowerUpDefinition.Boost = this.Context.CreateNew<PowerUpDefinitionValue>();
+                option.PowerUpDefinition.Boost.ConstantValue.AggregateType = optionTuple.AggregateType;
+                option.PowerUpDefinition.Boost.ConstantValue.Value = optionTuple.Value;
+                options.PossibleOptions.Add(option);
+            }
         }
 
         this.GameConfiguration.ItemSetGroups.Add(set);
-        this.GameConfiguration.ItemOptions.Add(options);
         return set;
     }
 
@@ -783,37 +792,49 @@ public class AncientSets : InitializerBase
             return option;
         }
 
-        var optionDefinition = this.Context.CreateNew<ItemOptionDefinition>();
-        optionDefinition.SetGuid(ItemOptionDefinitionNumbers.AncientBonus, attribute.Id.ExtractFirstTwoBytes());
-        optionDefinition.Name = $"Ancient Bonus of {attribute.Designation}";
-        optionDefinition.AddsRandomly = false;
-        optionDefinition.MaximumOptionsPerItem = 1;
-        this.GameConfiguration.ItemOptions.Add(optionDefinition);
+        // The definitions are identified by their id, so existing ones have to be reused. Otherwise
+        // an update which adds an ancient set to an existing database would try to save a second
+        // instance of them, which the entity framework rejects.
+        var optionDefinitionId = GuidHelper.CreateGuid<ItemOptionDefinition>(ItemOptionDefinitionNumbers.AncientBonus, attribute.Id.ExtractFirstTwoBytes());
+        var optionDefinition = this.GameConfiguration.ItemOptions.FirstOrDefault(definition => definition.GetId() == optionDefinitionId);
+        if (optionDefinition is null)
+        {
+            optionDefinition = this.Context.CreateNew<ItemOptionDefinition>();
+            optionDefinition.SetGuid(optionDefinitionId);
+            optionDefinition.Name = $"Ancient Bonus of {attribute.Designation}";
+            optionDefinition.AddsRandomly = false;
+            optionDefinition.MaximumOptionsPerItem = 1;
+            this.GameConfiguration.ItemOptions.Add(optionDefinition);
+        }
 
-        option = this.Context.CreateNew<IncreasableItemOption>();
-        option.SetGuid(ItemOptionDefinitionNumbers.AncientBonus, attribute.Id.ExtractFirstTwoBytes());
-        option.OptionType = this._ancientBonusOptionType;
-        option.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
-        option.PowerUpDefinition.TargetAttribute = attribute.GetPersistent(this.GameConfiguration);
+        option = optionDefinition.PossibleOptions.OfType<IncreasableItemOption>().FirstOrDefault();
+        if (option is null)
+        {
+            option = this.Context.CreateNew<IncreasableItemOption>();
+            option.SetGuid(ItemOptionDefinitionNumbers.AncientBonus, attribute.Id.ExtractFirstTwoBytes());
+            option.OptionType = this._ancientBonusOptionType;
+            option.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
+            option.PowerUpDefinition.TargetAttribute = attribute.GetPersistent(this.GameConfiguration);
 
-        var level1 = this.Context.CreateNew<ItemOptionOfLevel>();
-        level1.Level = 1;
-        level1.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
-        level1.PowerUpDefinition.TargetAttribute = attribute.GetPersistent(this.GameConfiguration);
-        level1.PowerUpDefinition.Boost = this.Context.CreateNew<PowerUpDefinitionValue>();
-        level1.PowerUpDefinition.Boost.ConstantValue.Value = 5;
+            var level1 = this.Context.CreateNew<ItemOptionOfLevel>();
+            level1.Level = 1;
+            level1.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
+            level1.PowerUpDefinition.TargetAttribute = attribute.GetPersistent(this.GameConfiguration);
+            level1.PowerUpDefinition.Boost = this.Context.CreateNew<PowerUpDefinitionValue>();
+            level1.PowerUpDefinition.Boost.ConstantValue.Value = 5;
 
-        var level2 = this.Context.CreateNew<ItemOptionOfLevel>();
-        level2.Level = 2;
-        level2.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
-        level2.PowerUpDefinition.TargetAttribute = attribute.GetPersistent(this.GameConfiguration);
-        level2.PowerUpDefinition.Boost = this.Context.CreateNew<PowerUpDefinitionValue>();
-        level2.PowerUpDefinition.Boost.ConstantValue.Value = 10;
+            var level2 = this.Context.CreateNew<ItemOptionOfLevel>();
+            level2.Level = 2;
+            level2.PowerUpDefinition = this.Context.CreateNew<PowerUpDefinition>();
+            level2.PowerUpDefinition.TargetAttribute = attribute.GetPersistent(this.GameConfiguration);
+            level2.PowerUpDefinition.Boost = this.Context.CreateNew<PowerUpDefinitionValue>();
+            level2.PowerUpDefinition.Boost.ConstantValue.Value = 10;
 
-        option.LevelDependentOptions.Add(level1);
-        option.LevelDependentOptions.Add(level2);
+            option.LevelDependentOptions.Add(level1);
+            option.LevelDependentOptions.Add(level2);
 
-        optionDefinition.PossibleOptions.Add(option);
+            optionDefinition.PossibleOptions.Add(option);
+        }
         this._bonusOptions.Add(attribute, option);
         return option;
     }

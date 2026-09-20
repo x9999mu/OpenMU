@@ -145,10 +145,52 @@ internal class TestInitializationWithEfCore
         var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
         this.AssertRageFighterAncientSets(configuration);
 
+        // Simulate an existing database which doesn't contain the sets yet.
+        foreach (var setName in new[] { "Vega", "Chamer" })
+        {
+            var set = configuration.ItemSetGroups.Single(itemSetGroup => itemSetGroup.Name == setName);
+            foreach (var definition in set.Items.Select(itemOfSet => itemOfSet.ItemDefinition!).Distinct().ToList())
+            {
+                definition.PossibleItemSetGroups.Remove(set);
+            }
+
+            configuration.ItemSetGroups.Remove(set);
+            if (set.Options is { } setOptions)
+            {
+                configuration.ItemOptions.Remove(setOptions);
+            }
+        }
+
+        var optionDefinitionsBefore = configuration.ItemOptions
+            .GroupBy(definition => definition.GetId())
+            .ToDictionary(group => group.Key, group => group.Count());
+        var setGroupsBefore = configuration.ItemSetGroups.Count;
+
         var update = new AddRageFighterAncientSetsPlugIn();
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
         this.AssertRageFighterAncientSets(configuration);
+
+        Assert.Multiple(() =>
+        {
+            // Applying the update on an already initialized database must not create new option
+            // definitions: the required ones already exist, and the entity framework would fail to
+            // save a second instance of them, because a definition is identified by its id.
+            Assert.That(configuration.ItemSetGroups, Has.Count.EqualTo(setGroupsBefore + 2));
+            foreach (var definitionsOfId in configuration.ItemOptions.GroupBy(definition => definition.GetId()))
+            {
+                var countBefore = optionDefinitionsBefore.GetValueOrDefault(definitionsOfId.Key);
+                if (countBefore == 0)
+                {
+                    continue;
+                }
+
+                Assert.That(
+                    definitionsOfId.Count(),
+                    Is.EqualTo(countBefore),
+                    $"the update must not create another instance of the option definition {definitionsOfId.Key} ({string.Join(", ", definitionsOfId.Select(definition => definition.Name))})");
+            }
+        });
     }
 
     private void AssertRageFighterAncientSets(GameConfiguration configuration)
