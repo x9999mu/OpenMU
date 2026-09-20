@@ -22,6 +22,7 @@ using MUnique.OpenMU.Persistence.EntityFramework;
 using MUnique.OpenMU.GameLogic.PlugIns.ChatCommands;
 using MUnique.OpenMU.Persistence.Initialization.Updates;
 using MUnique.OpenMU.Persistence.Initialization.CharacterClasses;
+using MUnique.OpenMU.Persistence.Initialization.Items;
 using MUnique.OpenMU.Persistence.InMemory;
 
 /// <summary>
@@ -171,8 +172,22 @@ internal class TestInitializationWithEfCore
         await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
         this.AssertRageFighterAncientSets(configuration);
 
+        // Simulate a database which was created by the first version of the update, where the boots
+        // still carried the second discriminator which the game client doesn't know.
+        var chamerBoots = configuration.ItemSetGroups.Single(set => set.Name == "Chamer").Items
+            .Single(item => item.ItemDefinition?.Group == (byte)ItemGroups.Boots && item.ItemDefinition.Number == 59);
+        chamerBoots.AncientSetDiscriminator = 2;
+        var bootFix = new FixRageFighterSacredBootsDiscriminatorPlugIn();
+        await bootFix.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await bootFix.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+
         Assert.Multiple(() =>
         {
+            Assert.That(
+                chamerBoots.AncientSetDiscriminator,
+                Is.EqualTo(1),
+                "the boots fix must give the boots the discriminator the client expects, and must be repeatable");
+
             // Applying the update on an already initialized database must not create new option
             // definitions: the required ones already exist, and the entity framework would fail to
             // save a second instance of them, because a definition is identified by its id.
@@ -220,7 +235,7 @@ internal class TestInitializationWithEfCore
                     ((byte)0, (short)32, 2), // Sacred Glove
                     ((byte)8, (short)59, 2), // Sacred Armor
                     ((byte)9, (short)59, 2), // Sacred Pants
-                    ((byte)11, (short)59, 2), // Sacred Boots
+                    ((byte)11, (short)59, 1), // Sacred Boots, the client only knows them with this discriminator
                 }),
                 "Chamer items");
 

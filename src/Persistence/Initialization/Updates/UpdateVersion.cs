@@ -829,4 +829,9 @@ public enum UpdateVersion
     /// The version of the <see cref="AddRageFighterAncientSetsPlugIn"/>.
     /// </summary>
     AddRageFighterAncientSets = 164,
+
+    /// <summary>
+    /// The version of the <see cref="FixRageFighterSacredBootsDiscriminatorPlugIn"/>.
+    /// </summary>
+    FixRageFighterSacredBootsDiscriminator = 165,
 }

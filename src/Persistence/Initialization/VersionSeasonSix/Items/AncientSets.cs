@@ -660,8 +660,10 @@ public class AncientSets : InitializerBase
     /// The Rage Fighter is the only class without armor gloves (his gloves are weapons) and without
     /// shields, so both sets consist of his glove weapon and three armor pieces - he is able to wear
     /// all of them and receives the complete set bonus.
-    /// The client maps the helmet only to the first and the boots only to the second discriminator,
-    /// so the helmet is part of Vega, while the boots are part of Chamer.
+    /// The client knows the helmet only as a Vega item (first discriminator) and the boots only as a
+    /// Chamer item. Because the boots are not part of any other set, the client registered them with
+    /// the first discriminator as well, so the boots must carry the discriminator 1, too. Otherwise
+    /// the client would not count them to the set and would never display the complete set bonus.
     /// This method is idempotent, so it can be called by the initialization and by the configuration
     /// update which adds these sets to existing databases.
     /// </remarks>
@@ -715,7 +717,7 @@ public class AncientSets : InitializerBase
                 (32, ItemGroups.Swords, Stats.TotalStrength, 2), // Sacred Glove
                 (59, ItemGroups.Armor, Stats.TotalVitality, 2),
                 (59, ItemGroups.Pants, Stats.TotalVitality, 2),
-                (59, ItemGroups.Boots, Stats.TotalVitality, 2));
+                (59, ItemGroups.Boots, Stats.TotalVitality, 1)); // Sacred Boots
         }
     }
 
