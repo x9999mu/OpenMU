@@ -130,6 +130,73 @@ internal class TestInitializationWithEfCore
         });
     }
 
+    /// <summary>
+    /// Tests that the Rage Fighter's Sacred items have the ancient sets which the game client knows,
+    /// and that the configuration update adds them idempotently.
+    /// </summary>
+    [Test]
+    public async Task TestRageFighterAncientSetsAsync()
+    {
+        var contextProvider = new InMemoryPersistenceContextProvider();
+        var dataInitialization = new VersionSeasonSix.DataInitialization(contextProvider, new NullLoggerFactory());
+        await dataInitialization.CreateInitialDataAsync(1, true).ConfigureAwait(false);
+
+        using var context = contextProvider.CreateNewContext();
+        var configuration = (await context.GetAsync<GameConfiguration>().ConfigureAwait(false)).Single();
+        this.AssertRageFighterAncientSets(configuration);
+
+        var update = new AddRageFighterAncientSetsPlugIn();
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        await update.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);
+        this.AssertRageFighterAncientSets(configuration);
+    }
+
+    private void AssertRageFighterAncientSets(GameConfiguration configuration)
+    {
+        var vega = configuration.ItemSetGroups.Single(set => set.Name == "Vega");
+        var chamer = configuration.ItemSetGroups.Single(set => set.Name == "Chamer");
+        var rageFighterClasses = configuration.CharacterClasses.Where(characterClass => characterClass.Number is 24 or 25).ToList();
+
+        Assert.Multiple(() =>
+        {
+            // The client maps the Sacred helmet only to the first and the boots only to the second
+            // discriminator, so the helmet may only be part of Vega and the boots only of Chamer.
+            Assert.That(
+                vega.Items.Select(item => (item.ItemDefinition!.Group, item.ItemDefinition.Number, item.AncientSetDiscriminator)),
+                Is.EquivalentTo(new[]
+                {
+                    ((byte)0, (short)32, 1), // Sacred Glove
+                    ((byte)7, (short)59, 1), // Sacred Helm
+                    ((byte)8, (short)59, 1), // Sacred Armor
+                    ((byte)9, (short)59, 1), // Sacred Pants
+                }),
+                "Vega items");
+            Assert.That(
+                chamer.Items.Select(item => (item.ItemDefinition!.Group, item.ItemDefinition.Number, item.AncientSetDiscriminator)),
+                Is.EquivalentTo(new[]
+                {
+                    ((byte)0, (short)32, 2), // Sacred Glove
+                    ((byte)8, (short)59, 2), // Sacred Armor
+                    ((byte)9, (short)59, 2), // Sacred Pants
+                    ((byte)11, (short)59, 2), // Sacred Boots
+                }),
+                "Chamer items");
+
+            // The Rage Fighter has to be able to wear every item of both sets, otherwise he would
+            // never receive the complete set bonus.
+            Assert.That(
+                vega.Items.Concat(chamer.Items)
+                    .Select(item => item.ItemDefinition!)
+                    .Distinct()
+                    .All(item => rageFighterClasses.Any(characterClass => item.QualifiedCharacters.Contains(characterClass))),
+                Is.True,
+                "every set item must be usable by the Rage Fighter");
+
+            Assert.That(vega.Options!.PossibleOptions, Has.Count.EqualTo(6), "Vega options");
+            Assert.That(chamer.Options!.PossibleOptions, Has.Count.EqualTo(7), "Chamer options");
+        });
+    }
+
     private async Task AssertInstantServerConfigurationAsync(IPersistenceContextProvider contextProvider, bool pvpEnabled = false)
     {
         using var context = contextProvider.CreateNewConfigurationContext();

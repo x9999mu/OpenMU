@@ -824,4 +824,9 @@ public enum UpdateVersion
     /// The version of the <see cref="ConfigureRemainingSocketOptionsUpdatePlugIn"/>.
     /// </summary>
     ConfigureRemainingSocketOptions = 163,
+
+    /// <summary>
+    /// The version of the <see cref="AddRageFighterAncientSetsPlugIn"/>.
+    /// </summary>
+    AddRageFighterAncientSets = 164,
 }

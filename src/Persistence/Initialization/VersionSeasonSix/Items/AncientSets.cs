@@ -647,6 +647,76 @@ public class AncientSets : InitializerBase
             (40, ItemGroups.Gloves, Stats.TotalVitality, 2),
             (40, ItemGroups.Armor, Stats.TotalVitality, 2),
             (40, ItemGroups.Helm, Stats.TotalVitality, 2));
+
+        this.AddRageFighterAncientSets();
+    }
+
+    /// <summary>
+    /// Adds the two ancient sets of the Rage Fighter's Sacred items. The client already knows them
+    /// (Vega's for the first and Chamer's for the second ancient discriminator of these items), so
+    /// no client changes are required.
+    /// </summary>
+    /// <remarks>
+    /// The Rage Fighter is the only class without armor gloves (his gloves are weapons) and without
+    /// shields, so both sets consist of his glove weapon and three armor pieces - he is able to wear
+    /// all of them and receives the complete set bonus.
+    /// The client maps the helmet only to the first and the boots only to the second discriminator,
+    /// so the helmet is part of Vega, while the boots are part of Chamer.
+    /// This method is idempotent, so it can be called by the initialization and by the configuration
+    /// update which adds these sets to existing databases.
+    /// </remarks>
+    internal void AddRageFighterAncientSets()
+    {
+        var vega = this.GameConfiguration.ItemSetGroups.FirstOrDefault(set => set.GetId() == GuidHelper.CreateGuid<ItemSetGroup>(59, 1));
+        if (vega is null)
+        {
+            vega = this.AddAncientSet(
+                "Vega",
+                37,
+                (Stats.AttackRatePvm, 50.0f, AggregateType.AddRaw),
+                (Stats.TotalVitality, 50.0f, AggregateType.AddRaw),
+                (Stats.MaximumPhysBaseDmg, 30.0f, AggregateType.AddRaw),
+                (Stats.ExcellentDamageChance, 0.15f, AggregateType.AddRaw),
+                (Stats.DoubleDamageChance, 0.05f, AggregateType.AddRaw),
+                (Stats.DefenseIgnoreChance, 0.05f, AggregateType.AddRaw));
+            vega.SetGuid(59, 1);
+        }
+
+        if (vega.Items.Count == 0)
+        {
+            this.AddItems(
+                vega,
+                (32, ItemGroups.Swords, Stats.TotalStrength, 1), // Sacred Glove
+                (59, ItemGroups.Helm, Stats.TotalVitality, 1),
+                (59, ItemGroups.Armor, Stats.TotalVitality, 1),
+                (59, ItemGroups.Pants, Stats.TotalVitality, 1));
+        }
+
+        var chamer = this.GameConfiguration.ItemSetGroups.FirstOrDefault(set => set.GetId() == GuidHelper.CreateGuid<ItemSetGroup>(59, 2));
+        if (chamer is null)
+        {
+            chamer = this.AddAncientSet(
+                "Chamer",
+                38,
+                (Stats.DefenseBase, 50.0f, AggregateType.AddFinal),
+                (Stats.DoubleDamageChance, 0.05f, AggregateType.AddRaw),
+                (Stats.FinalDamageBonus, 30.0f, AggregateType.AddRaw),
+                (Stats.CriticalDamageBonus, 30.0f, AggregateType.AddRaw),
+                (Stats.ExcellentDamageChance, 0.15f, AggregateType.AddRaw),
+                (Stats.SkillDamageBonus, 30.0f, AggregateType.AddRaw),
+                (Stats.ExcellentDamageBonus, 20.0f, AggregateType.AddRaw));
+            chamer.SetGuid(59, 2);
+        }
+
+        if (chamer.Items.Count == 0)
+        {
+            this.AddItems(
+                chamer,
+                (32, ItemGroups.Swords, Stats.TotalStrength, 2), // Sacred Glove
+                (59, ItemGroups.Armor, Stats.TotalVitality, 2),
+                (59, ItemGroups.Pants, Stats.TotalVitality, 2),
+                (59, ItemGroups.Boots, Stats.TotalVitality, 2));
+        }
     }
 
     private void AddItems(ItemSetGroup set, params (short Number, ItemGroups Group, AttributeDefinition? BonusOption, int Discriminator)[] items)
