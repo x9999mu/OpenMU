@@ -175,7 +175,7 @@ internal class TestInitializationWithEfCore
         // Simulate a database which was created by the first version of the update, where the boots
         // still carried the second discriminator which the game client doesn't know.
         var chamerBoots = configuration.ItemSetGroups.Single(set => set.Name == "Chamer").Items
-            .Single(item => item.ItemDefinition?.Group == (byte)ItemGroups.Boots && item.ItemDefinition.Number == 59);
+            .Single(item => item.ItemDefinition?.Group == (byte)ItemGroups.Boots && item.ItemDefinition?.Number == 59);
         chamerBoots.AncientSetDiscriminator = 2;
         var bootFix = new FixRageFighterSacredBootsDiscriminatorPlugIn();
         await bootFix.ApplyUpdateAsync(context, configuration).ConfigureAwait(false);

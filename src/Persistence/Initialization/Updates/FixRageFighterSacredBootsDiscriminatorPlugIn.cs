@@ -66,7 +66,7 @@ public sealed class FixRageFighterSacredBootsDiscriminatorPlugIn : UpdatePlugInB
     {
         var set = gameConfiguration.ItemSetGroups.FirstOrDefault(itemSetGroup => itemSetGroup.Name == SetName);
         var boots = set?.Items.FirstOrDefault(item => item.ItemDefinition?.Group == (byte)ItemGroups.Boots
-            && item.ItemDefinition.Number == 59);
+            && item.ItemDefinition?.Number == 59);
         if (boots is not null && boots.AncientSetDiscriminator != Discriminator)
         {
             boots.AncientSetDiscriminator = Discriminator;
