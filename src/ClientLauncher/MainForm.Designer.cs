@@ -43,6 +43,8 @@
             _updateButton = new System.Windows.Forms.Button();
             _cleanInstallButton = new System.Windows.Forms.Button();
             _statusLabel = new System.Windows.Forms.Label();
+            _highlightsLabel = new System.Windows.Forms.Label();
+            _highlightsTextBox = new System.Windows.Forms.TextBox();
             SuspendLayout();
             // 
             // _launchButton
@@ -201,11 +203,35 @@
             _statusLabel.TabIndex = 11;
             _statusLabel.Text = "Ready.";
             // 
+            // _highlightsLabel
+            // 
+            _highlightsLabel.AutoSize = true;
+            _highlightsLabel.Location = new System.Drawing.Point(14, 148);
+            _highlightsLabel.Name = "_highlightsLabel";
+            _highlightsLabel.Size = new System.Drawing.Size(70, 15);
+            _highlightsLabel.TabIndex = 12;
+            _highlightsLabel.Text = "Có gì mới:";
+            // 
+            // _highlightsTextBox
+            // 
+            _highlightsTextBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            _highlightsTextBox.BackColor = System.Drawing.SystemColors.Window;
+            _highlightsTextBox.Location = new System.Drawing.Point(107, 145);
+            _highlightsTextBox.Multiline = true;
+            _highlightsTextBox.Name = "_highlightsTextBox";
+            _highlightsTextBox.ReadOnly = true;
+            _highlightsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            _highlightsTextBox.Size = new System.Drawing.Size(551, 66);
+            _highlightsTextBox.TabIndex = 13;
+            _highlightsTextBox.TabStop = false;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(665, 146);
+            ClientSize = new System.Drawing.Size(665, 220);
+            Controls.Add(_highlightsTextBox);
+            Controls.Add(_highlightsLabel);
             Controls.Add(_statusLabel);
             Controls.Add(_cleanInstallButton);
             Controls.Add(_updateButton);
@@ -222,7 +248,7 @@
             Icon = (System.Drawing.Icon)resources.GetObject("$this.Icon");
             Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             MaximizeBox = false;
-            MaximumSize = new System.Drawing.Size(1257, 185);
+            MaximumSize = new System.Drawing.Size(1257, 259);
             Name = "MainForm";
             Text = "MU Game Client Launcher";
             ResumeLayout(false);
@@ -245,6 +271,8 @@
         private System.Windows.Forms.Button _updateButton;
         private System.Windows.Forms.Button _cleanInstallButton;
         private System.Windows.Forms.Label _statusLabel;
+        private System.Windows.Forms.Label _highlightsLabel;
+        private System.Windows.Forms.TextBox _highlightsTextBox;
     }
 }
 

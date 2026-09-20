@@ -380,6 +380,7 @@ public partial class MainForm : Form
         }
 
         this.ApplyServerSettings(check.Manifest);
+        this.SetHighlights(check.Manifest.Commits);
 
         if (await this.TryRunSelfUpdateAsync(updateService, check.Manifest))
         {
@@ -482,6 +483,21 @@ public partial class MainForm : Form
         existing.Port = server.Port > 0 ? server.Port : 44405;
         this._serversComboBox.SelectedItem = existing;
         this.SaveCurrentOptions();
+    }
+
+    /// <summary>
+    /// Shows the most recent changes of the client which are part of the manifest.
+    /// </summary>
+    /// <param name="commits">The short change list.</param>
+    private void SetHighlights(IEnumerable<string> commits)
+    {
+        var lines = commits.Where(line => !string.IsNullOrWhiteSpace(line)).Take(4).ToList();
+        var hasHighlights = lines.Count > 0;
+        this._highlightsLabel.Visible = hasHighlights;
+        this._highlightsTextBox.Visible = hasHighlights;
+        this._highlightsTextBox.Text = hasHighlights
+            ? string.Join(Environment.NewLine, lines.Select(line => "• " + line))
+            : string.Empty;
     }
 
     private void StartClient(ServerHostSettings selectedHost)

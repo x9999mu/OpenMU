@@ -63,6 +63,11 @@ internal sealed class UpdateManifest
     public List<string> Preserve { get; set; } = ["config.ini"];
 
     /// <summary>
+    /// Gets or sets the short list of the most recent changes, which is shown in the launcher.
+    /// </summary>
+    public List<string> Commits { get; set; } = [];
+
+    /// <summary>
     /// Validates the manifest and throws an exception if it can not be used.
     /// </summary>
     /// <exception cref="InvalidDataException">Thrown when the manifest is not valid.</exception>
