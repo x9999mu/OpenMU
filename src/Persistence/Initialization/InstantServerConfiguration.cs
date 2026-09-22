@@ -317,6 +317,7 @@ internal static class InstantServerConfiguration
             AddClassChangeAndWingItems(context, gameConfiguration, packer);
             AddInventoryExtensionItem(context, gameConfiguration, packer);
         });
+        ConfigureShopEquipment(context, gameConfiguration, 253);
     }
 
     /// <summary>
@@ -796,9 +797,11 @@ internal static class InstantServerConfiguration
         group.PossibleItems.Add(item);
     }
 
-    private static void ConfigureShopEquipment(IContext context, GameConfiguration gameConfiguration)
+    private static void ConfigureShopEquipment(IContext context, GameConfiguration gameConfiguration, short? merchantNumber = null)
     {
-        foreach (var item in gameConfiguration.Monsters.SelectMany(monster => monster.MerchantStore?.Items ?? []))
+        foreach (var item in gameConfiguration.Monsters
+                     .Where(monster => merchantNumber is null || monster.Number == merchantNumber)
+                     .SelectMany(monster => monster.MerchantStore?.Items ?? []))
         {
             var option = item.Definition?.PossibleItemOptions
                 .SelectMany(definition => definition.PossibleOptions)

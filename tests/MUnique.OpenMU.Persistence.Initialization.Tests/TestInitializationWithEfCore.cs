@@ -401,14 +401,19 @@ internal class TestInitializationWithEfCore
             }
         }
 
-        var jackpot = configuration.Items.Single(item => item is { Group: 14, Number: 52 }).DropItems.Single();
+        var gmGift = configuration.Items.Single(item => item is { Group: 14, Number: 52 });
+        var giftOutcomes = gmGift.DropItems.ToList();
         Assert.Multiple(() =>
         {
-            Assert.That(jackpot.ItemType, Is.EqualTo(SpecialItemType.FullExcellent));
-            Assert.That(jackpot.Chance, Is.EqualTo(1.0));
-            Assert.That(jackpot.MinimumLevel, Is.EqualTo(9));
-            Assert.That(jackpot.MaximumLevel, Is.EqualTo(9));
-            Assert.That(jackpot.PossibleItems, Is.SupersetOf(kundunBox.DropItems.Single(group => group.SourceItemLevel == 12).PossibleItems));
+            Assert.That(giftOutcomes, Has.Count.EqualTo(5));
+            Assert.That(giftOutcomes.Select(group => group.Chance), Is.EquivalentTo(new[] { 0.30, 0.05, 0.03, 0.03, 0.59 }));
+            Assert.That(giftOutcomes.Single(group => group.ItemType == SpecialItemType.FullExcellent).MinimumLevel, Is.EqualTo(4));
+            Assert.That(giftOutcomes.Single(group => group.ItemType == SpecialItemType.FullExcellent).MaximumLevel, Is.EqualTo(4));
+            Assert.That(giftOutcomes.Single(group => group.ItemType == SpecialItemType.FullAncient).MinimumLevel, Is.EqualTo(9));
+            Assert.That(giftOutcomes.Single(group => group.ItemType == SpecialItemType.FullAncient).MaximumLevel, Is.EqualTo(9));
+            Assert.That(giftOutcomes.Single(group => group.DropEffect == ItemDropEffect.Fireworks).Chance, Is.EqualTo(0.03));
+            Assert.That(giftOutcomes.Single(group => group.ItemAmount == 2).PossibleItems, Is.EqualTo(new[] { gmGift }));
+            Assert.That(giftOutcomes.Single(group => group.ItemAmount == 1 && group.PossibleItems.Contains(gmGift)).Chance, Is.EqualTo(0.30));
         });
 
         var kundunFourDirectItems = new (byte Group, short Number)[]
@@ -433,11 +438,7 @@ internal class TestInitializationWithEfCore
         Assert.That(
             kundunBox.DropItems.Single(group => group.SourceItemLevel == 12).PossibleItems,
             Is.EquivalentTo(EquipmentPool(configuration, kundunFiveDirectItems, [29, 30, 31, 32, 33, 43, 73])));
-        Assert.That(
-            jackpot.PossibleItems,
-            Is.EquivalentTo(EquipmentPool(configuration, kundunFiveDirectItems, [29, 30, 31, 32, 33, 43, 73, 45, 46, 47, 48, 49, 50, 51, 52, 53])));
-
-        foreach (var opening in new[] { kundunBox.DropItems.Single(group => group.SourceItemLevel == 11), kundunBox.DropItems.Single(group => group.SourceItemLevel == 12), jackpot })
+        foreach (var opening in new[] { kundunBox.DropItems.Single(group => group.SourceItemLevel == 11), kundunBox.DropItems.Single(group => group.SourceItemLevel == 12) })
         {
             Assert.That(opening.PossibleItems, Is.Not.Empty);
             Assert.That(opening.PossibleItems.All(item => item.PossibleItemOptions.SelectMany(options => options.PossibleOptions).Any(option => option.OptionType == ItemOptionTypes.Excellent)), Is.True, opening.Description);
@@ -729,11 +730,11 @@ internal class TestInitializationWithEfCore
                 Assert.That(normal.LevelUpPoints, Is.EqualTo(normalFreePoints));
                 Assert.That(hero.LevelUpPoints, Is.EqualTo(heroFreePoints));
                 Assert.That(configuration.DropItemGroups.Count(group => group.GetId() == new Guid(0x200, 9_999, 1, 0, 0, 0, 0, 0, 0, 0, 0)), Is.EqualTo(1));
-                Assert.That(configuration.Items.Single(item => item is { Group: 14, Number: 52 }).DropItems, Has.Exactly(1).Items);
+                Assert.That(configuration.Items.Single(item => item is { Group: 14, Number: 52 }).DropItems, Has.Exactly(5).Items);
             });
         }
 
-        await this.AssertInstantServerConfigurationAsync(contextProvider).ConfigureAwait(false);
+        await this.AssertInstantServerConfigurationAsync(contextProvider, pvpEnabled: true).ConfigureAwait(false);
     }
 
     /// <summary>
