@@ -1,4 +1,4 @@
-﻿// <copyright file="AddDoppelgangerDataUpdatePlugIn.cs" company="MUnique">
+// <copyright file="AddDoppelgangerDataUpdatePlugIn.cs" company="MUnique">
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 // </copyright>
 
@@ -52,7 +52,11 @@ public class AddDoppelgangerDataUpdatePlugIn : UpdatePlugInBase
     public override string DataInitializationKey => VersionSeasonSix.DataInitialization.Id;
 
     /// <inheritdoc />
-    public override bool IsMandatory => false;
+    // x9999: the deployment applies the mandatory updates on every deploy and gates on the
+    // resulting data version (see deploy/all-in-one/deploy-lenovo.sh), so the event data has to
+    // be mandatory to reach the version the gate expects. Upstream applies it through the admin
+    // panel instead.
+    public override bool IsMandatory => true;
 
     /// <inheritdoc />
     public override DateTime CreatedAt => new(2026, 09, 23, 0, 0, 0, DateTimeKind.Utc);
