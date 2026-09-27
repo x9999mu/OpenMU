@@ -302,7 +302,16 @@ internal class TestInitializationWithEfCore
             Assert.That(configuration.MiniGameDefinitions.All(miniGame => miniGame.ArePlayerKillersAllowedToEnter), Is.True);
         });
 
-        Assert.That(configuration.Maps.Where(map => map.Number != 10).SelectMany(map => map.DropItemGroups).All(group => group.ItemType == SpecialItemType.Money), Is.True);
+        // The sign of dimensions keeps dropping from monsters on every map, so that the
+        // doppelganger tickets stay obtainable; every other map drop is money.
+        var doppelgangerSignDrop = configuration.DropItemGroups
+            .Single(group => group.PossibleItems.Any(item => item is { Group: 14, Number: 110 }));
+        Assert.That(
+            configuration.Maps.Where(map => map.Number != 10)
+                .SelectMany(map => map.DropItemGroups)
+                .Where(group => group != doppelgangerSignDrop)
+                .All(group => group.ItemType == SpecialItemType.Money),
+            Is.True);
         AssertIcarusAndKalimaSevenJewelDrops(configuration);
         Assert.That(configuration.Monsters.SelectMany(monster => monster.Quests).SelectMany(quest => quest.RequiredItems).Where(item => item.Item?.IsQuestItem == true).All(item => item.DropItemGroup is null), Is.True);
 

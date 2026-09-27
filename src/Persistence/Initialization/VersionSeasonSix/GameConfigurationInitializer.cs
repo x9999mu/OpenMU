@@ -1,4 +1,4 @@
-﻿// <copyright file="GameConfigurationInitializer.cs" company="MUnique">
+// <copyright file="GameConfigurationInitializer.cs" company="MUnique">
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 // </copyright>
 
@@ -91,7 +91,50 @@ public class GameConfigurationInitializer : GameConfigurationInitializerBase
         new ChaosCastleInitializer(this.Context, this.GameConfiguration).Initialize();
         new CastleSiegeInitializer(this.Context, this.GameConfiguration).Initialize();
         new KanturuInitializer(this.Context, this.GameConfiguration).Initialize();
+        new DoppelgangerInitializer(this.Context, this.GameConfiguration).Initialize();
         InstantServerConfiguration.Apply(this.Context, this.GameConfiguration);
+        this.RestoreDoppelgangerSignDrop();
+    }
+
+    /// <summary>
+    /// Attaches the drop of the sign of dimensions to all maps again.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="InstantServerConfiguration"/> replaces the drop groups of every map with the
+    /// common money drop, which also throws out the sign of dimensions which the maps inherit
+    /// from <see cref="EventTicketItems"/>. Without it, the doppelganger tickets couldn't be
+    /// obtained anymore, so the event drop is attached after the preset ran.
+    /// </remarks>
+    private void RestoreDoppelgangerSignDrop()
+    {
+        if (this.GameConfiguration.Items.FirstOrDefault(item => item is { Group: 14, Number: 110 }) is not { } signOfDimensions)
+        {
+            return;
+        }
+
+        var signDropGroup = this.GameConfiguration.DropItemGroups
+            .FirstOrDefault(group => group.PossibleItems.Contains(signOfDimensions));
+        if (signDropGroup is null)
+        {
+            return;
+        }
+
+        // Only maps which still drop anything at all get it: the preset removes the map-level
+        // drops of maps like Kalima 7 completely, see ConfigureIcarusAndKalimaSevenJewelDrops.
+        var moneyDropGroup = this.GameConfiguration.DropItemGroups
+            .FirstOrDefault(group => group.GetId() == GuidHelper.CreateGuid<DropItemGroup>(1));
+        if (moneyDropGroup is null)
+        {
+            return;
+        }
+
+        foreach (var map in this.GameConfiguration.Maps.Where(map => map.DropItemGroups.Contains(moneyDropGroup)))
+        {
+            if (!map.DropItemGroups.Contains(signDropGroup))
+            {
+                map.DropItemGroups.Add(signDropGroup);
+            }
+        }
     }
 
     /// <summary>

@@ -834,4 +834,9 @@ public enum UpdateVersion
     /// The version of the <see cref="FixRageFighterSacredBootsDiscriminatorPlugIn"/>.
     /// </summary>
     FixRageFighterSacredBootsDiscriminator = 165,
+
+    /// <summary>
+    /// The version of the <see cref="AddDoppelgangerDataUpdatePlugIn"/>.
+    /// </summary>
+    AddDoppelgangerData = 166,
 }
